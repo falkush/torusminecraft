@@ -2,9 +2,13 @@
 
 #include <SFML/Graphics.hpp>
 #include "windows.h" 
+#include <fstream>
+#include <iostream>
+#include <string>
 
+using namespace std;
 
-void cudathingy(uint8_t* pixels, double pos0, double pos1, double pos2, double vec0, double vec1, double vec2, double addy0, double addy1, double addy2, double addz0, double addz1, double addz2, bool inside, double alpha, double beta, double bigr, double r, bool other, double dx, double dy, double dz, int currx, int curry, int currz, int nbx, int nby, int nbz, bool* blocks1, bool* blocks2, bool rem, bool blockrand, bool reset);
+void cudathingy(uint8_t* pixels, double pos0, double pos1, double pos2, double vec0, double vec1, double vec2, double addy0, double addy1, double addy2, double addz0, double addz1, double addz2, bool inside, double alpha, double beta, double bigr, double r, bool other, double dx, double dy, double dz, int currx, int curry, int currz, int nbx, int nby, int nbz, bool* blocks1, bool* blocks2, bool rem, bool blockrand, bool reset, int frame, bool add,bool load, double alphaef, double alphaef2, double alphaef3, double alphaef4);
 void cudaInit();
 void cudaExit();
 
@@ -25,7 +29,7 @@ static bool blocks2[30 * 30 * 30]{};
 
 int main()
 {
-    ShowWindow(GetConsoleWindow(), SW_HIDE);
+	ShowWindow(GetConsoleWindow(), SW_HIDE);
 	//ShowWindow(GetConsoleWindow(), SW_SHOW);
 
 	double r = 1.0;
@@ -33,18 +37,18 @@ int main()
 
 	double roomsize = 10.0;
 	double schecker = 1.0;
-	double dist = 2.0;
+	double dist = 1.0;
 	double sqsz = 0.01 / 4;
 	double speed = 0.01;
 	double alpha = 1.0;
 	double beta = 5.0;
-
+	double efdur = 0;
 
 	double alpha2 = 1.0;
 	double beta2 = beta - alpha;
 
 
-	double outangle=0;
+	double outangle = 0;
 
 	bool other = false;
 
@@ -52,31 +56,33 @@ int main()
 	double xl;
 	double dotp;
 
+	int i;
+
 	double vl, geoang;
 
 	double tmppos0, tmppos1, tmppos2, tmpx00, tmpx01, tmpx02, tmpx10, tmpx11, tmpx12, tmpx20, tmpx21, tmpx22;
 
 	bool inside = false;
-	
+
 	bool reset = false;
 
 
-    int mousx, mousy, centralx, centraly;
+	int mousx, mousy, centralx, centraly;
 
-    double pos0, pos1, pos2;
-    double vec0, vec1, vec2;
-    double addy0, addy1, addy2;
-    double addz0, addz1, addz2;
-    double x00, x01, x02;
-    double x10, x11, x12;
-    double x20, x21, x22;
-    double multy = (1 - 1920) * sqsz / 2;
-    double multz = (1080-1) * sqsz / 2;
+	double pos0, pos1, pos2;
+	double vec0, vec1, vec2;
+	double addy0, addy1, addy2;
+	double addz0, addz1, addz2;
+	double x00, x01, x02;
+	double x10, x11, x12;
+	double x20, x21, x22;
+	double multy = (1 - 1920) * sqsz / 2;
+	double multz = (1080 - 1) * sqsz / 2;
 
 
-    double newx00, newx01, newx02;
-    double newx10, newx11, newx12;
-    double newx20, newx21, newx22;
+	double newx00, newx01, newx02;
+	double newx10, newx11, newx12;
+	double newx20, newx21, newx22;
 
 	double torcoll;
 	double rayon;
@@ -84,7 +90,9 @@ int main()
 	double guder;
 	double distrem;
 
-
+	double alphaef=0, alphaef2=0, alphaef3=0, alphaef4=0;
+	bool aef=false, aef2=false, aef3=false, aef4=false;
+	int aeff=0, aeff2=0, aeff3=0, aeff4=0;
 
 	double proj0, proj1;
 
@@ -94,54 +102,63 @@ int main()
 	double nvecn[3]{};
 	double inv[9]{};
 	double npos[3]{};
-	
+
 	int nbx = 30;
 	int nby = 30;
 	int nbz = 30;
 
-	double dx = 2.0*M_PI*bigr / nbx;
+	double dx = 2.0 * M_PI * bigr / nbx;
 	double dy = 2.0 * M_PI * r / nby;
 	double dz = (beta - alpha) / nbz;
-	int currx=0, curry=0, currz=0;
+	int currx = 0, curry = 0, currz = 0;
 
-    bool focus = true;
+	bool focus = true;
 
 	bool blockrand = false;
 	bool tmpinside, tmpother;
 	bool rem = false;
+	bool add = false;
 
+	int frame = 0;
+
+	double betaef = 15.0;
+	double epsilonef = 1.0 / 30.0;
+
+	bool load = false;
+
+	string loadline;
 
 	setblockscpu(blocks1, blocks2);
 
-   //sf::RenderWindow window(sf::VideoMode(1920, 1080, 32), "Torus Minecraft - Press ESC to stop", sf::Style::Titlebar | sf::Style::Close);
+	//sf::RenderWindow window(sf::VideoMode(1920, 1080, 32), "Torus Minecraft - Press ESC to stop", sf::Style::Titlebar | sf::Style::Close);
 	sf::RenderWindow window(sf::VideoMode(1920, 1080, 32), "Torus Minecraft - Press ESC to stop", sf::Style::Fullscreen);
 	sf::Texture texture;
-    sf::Sprite sprite;
-    sf::Uint8* pixels = new sf::Uint8[1920 * 1080 * 4];
-    sf::Vector2i winpos;
+	sf::Sprite sprite;
+	sf::Uint8* pixels = new sf::Uint8[1920 * 1080 * 4];
+	sf::Vector2i winpos;
 
-    cudaInit();
-    texture.create(1920, 1080);
-    window.setMouseCursorVisible(false);
+	cudaInit();
+	texture.create(1920, 1080);
+	window.setMouseCursorVisible(false);
 
 	x00 = 0.0; x01 = 0.0; x02 = -1.0;
 	x10 = 0.0; x11 = 1.0; x12 = 0.0;
 	x20 = 1.0; x21 = 0.0; x22 = 0.0;
 	pos0 = 0.0; pos1 = 0.0; pos2 = 7.93;
 
-    winpos = window.getPosition();
-    SetCursorPos(winpos.x + 1920 / 2, winpos.y + 1080 / 2);
-   
-    while (window.isOpen())
-    {
-        //Sleep(1);
-        sf::Event event;
-		
+	winpos = window.getPosition();
+	SetCursorPos(winpos.x + 1920 / 2, winpos.y + 1080 / 2);
+
+	while (window.isOpen())
+	{
+		Sleep(1);
+		sf::Event event;
+
 		while (window.pollEvent(event))
 		{
 			if (focus && event.type == sf::Event::KeyPressed && event.key.code == sf::Keyboard::J)
 			{
-				setblocksrandcpu(blocks1,blocks2);
+				setblocksrandcpu(blocks1, blocks2);
 				blockrand = true;
 			}
 
@@ -241,6 +258,183 @@ int main()
 			}
 
 			if (focus && event.type == sf::Event::MouseButtonPressed && event.mouseButton.button == sf::Mouse::Left) rem = true;
+			if (focus && event.type == sf::Event::MouseButtonPressed && event.mouseButton.button == sf::Mouse::Right) add = true;
+		}
+		if (sf::Keyboard::isKeyPressed(sf::Keyboard::O)) texture.copyToImage().saveToFile("torus_screenshot.png");
+		
+		if (sf::Keyboard::isKeyPressed(sf::Keyboard::F1))
+		{
+			ofstream svfile("torus_savefile1.txt");
+
+			for (i = 0; i < 30 * 30 * 30; i++)
+			{
+				if(blocks1[i]) svfile << "1";
+				else svfile << "0";
+			}
+			for (i = 0; i < 30 * 30 * 30; i++)
+			{
+				if (blocks2[i]) svfile << "1";
+				else svfile << "0";
+			}
+			svfile.close();
+		}
+		if (sf::Keyboard::isKeyPressed(sf::Keyboard::F2))
+		{
+			ofstream svfile("torus_savefile2.txt");
+
+			for (i = 0; i < 30 * 30 * 30; i++)
+			{
+				if (blocks1[i]) svfile << "1";
+				else svfile << "0";
+			}
+			for (i = 0; i < 30 * 30 * 30; i++)
+			{
+				if (blocks2[i]) svfile << "1";
+				else svfile << "0";
+			}
+			svfile.close();
+		}
+		if (sf::Keyboard::isKeyPressed(sf::Keyboard::F3))
+		{
+			ofstream svfile("torus_savefile3.txt");
+
+			for (i = 0; i < 30 * 30 * 30; i++)
+			{
+				if (blocks1[i]) svfile << "1";
+				else svfile << "0";
+			}
+			for (i = 0; i < 30 * 30 * 30; i++)
+			{
+				if (blocks2[i]) svfile << "1";
+				else svfile << "0";
+			}
+			svfile.close();
+		}
+		if (sf::Keyboard::isKeyPressed(sf::Keyboard::F4))
+		{
+			ofstream svfile("torus_savefile4.txt");
+
+			for (i = 0; i < 30 * 30 * 30; i++)
+			{
+				if (blocks1[i]) svfile << "1";
+				else svfile << "0";
+			}
+			for (i = 0; i < 30 * 30 * 30; i++)
+			{
+				if (blocks2[i]) svfile << "1";
+				else svfile << "0";
+			}
+			svfile.close();
+		}
+
+		if (sf::Keyboard::isKeyPressed(sf::Keyboard::F5))
+		{
+			load = true;
+
+			ifstream loadfile("torus_savefile1.txt");
+			getline(loadfile, loadline);
+			
+			for (i = 0; i < 30 * 30 * 30; i++)
+			{
+				if (loadline.at(i) == '0') blocks1[i] = false;
+				else blocks1[i] = true;
+			}
+			
+			for (i = 30 * 30 * 30; i < 2* 30 * 30 * 30; i++)
+			{
+				if (loadline.at(i) == '0') blocks2[i- 30 * 30 * 30] = false;
+				else blocks2[i- 30 * 30 * 30] = true;
+			}
+			
+			loadfile.close();
+		}
+		if (sf::Keyboard::isKeyPressed(sf::Keyboard::F6))
+		{
+			load = true;
+
+			ifstream loadfile("torus_savefile2.txt");
+			getline(loadfile, loadline);
+
+			for (i = 0; i < 30 * 30 * 30; i++)
+			{
+				if (loadline.at(i) == '0') blocks1[i] = false;
+				else blocks1[i] = true;
+			}
+
+			for (i = 30 * 30 * 30; i < 2 * 30 * 30 * 30; i++)
+			{
+				if (loadline.at(i) == '0') blocks2[i - 30 * 30 * 30] = false;
+				else blocks2[i - 30 * 30 * 30] = true;
+			}
+
+			loadfile.close();
+		}
+		if (sf::Keyboard::isKeyPressed(sf::Keyboard::F7))
+		{
+			load = true;
+
+			ifstream loadfile("torus_savefile3.txt");
+			getline(loadfile, loadline);
+
+			for (i = 0; i < 30 * 30 * 30; i++)
+			{
+				if (loadline.at(i) == '0') blocks1[i] = false;
+				else blocks1[i] = true;
+			}
+
+			for (i = 30 * 30 * 30; i < 2 * 30 * 30 * 30; i++)
+			{
+				if (loadline.at(i) == '0') blocks2[i - 30 * 30 * 30] = false;
+				else blocks2[i - 30 * 30 * 30] = true;
+			}
+
+			loadfile.close();
+		}
+		if (sf::Keyboard::isKeyPressed(sf::Keyboard::F8))
+		{
+			load = true;
+
+			ifstream loadfile("torus_savefile4.txt");
+			getline(loadfile, loadline);
+
+			for (i = 0; i < 30 * 30 * 30; i++)
+			{
+				if (loadline.at(i) == '0') blocks1[i] = false;
+				else blocks1[i] = true;
+			}
+
+			for (i = 30 * 30 * 30; i < 2 * 30 * 30 * 30; i++)
+			{
+				if (loadline.at(i) == '0') blocks2[i - 30 * 30 * 30] = false;
+				else blocks2[i - 30 * 30 * 30] = true;
+			}
+
+			loadfile.close();
+		}
+
+		if (!aef && sf::Keyboard::isKeyPressed(sf::Keyboard::Num1))
+		{
+			aef = true;
+			alphaef = 0;
+			aeff = frame;
+		}
+		if (!aef2 && sf::Keyboard::isKeyPressed(sf::Keyboard::Num2))
+		{
+			aef2 = true;
+			alphaef2 = 0;
+			aeff2 = frame;
+		}
+		if (!aef3 && sf::Keyboard::isKeyPressed(sf::Keyboard::Num3))
+		{
+			aef3 = true;
+			alphaef3 = 0;
+			aeff3 = frame;
+		}
+		if (!aef4 && sf::Keyboard::isKeyPressed(sf::Keyboard::Num4))
+		{
+			aef4 = true;
+			alphaef4 = 0;
+			aeff4 = frame;
 		}
 
 		if (sf::Keyboard::isKeyPressed(sf::Keyboard::P))
@@ -268,439 +462,290 @@ int main()
 
 		if (sf::Keyboard::isKeyPressed(sf::Keyboard::Z)) { bigr += 0.003; dx = 2.0 * M_PI * bigr / nbx; }
 		if (sf::Keyboard::isKeyPressed(sf::Keyboard::X)) { bigr -= 0.003; dx = 2.0 * M_PI * bigr / nbx; }
-		if (sf::Keyboard::isKeyPressed(sf::Keyboard::C)) { r += 0.003;  alpha = alpha2 * r; beta = beta2 + alpha; dy=2.0 * M_PI * r / nby; dz = (beta - alpha) / nbz;}
-		if (sf::Keyboard::isKeyPressed(sf::Keyboard::V)) { r -= 0.003;  alpha = alpha2 * r; beta = beta2 + alpha; dy = 2.0 * M_PI * r / nby; dz = (beta - alpha) / nbz;}
-		if (sf::Keyboard::isKeyPressed(sf::Keyboard::B)) { alpha2 += 0.003; alpha = alpha2 * r; beta = beta2 + alpha; dz = (beta - alpha) / nbz;}
-		if (sf::Keyboard::isKeyPressed(sf::Keyboard::N)) { alpha2 -= 0.003;  alpha = alpha2 * r; beta = beta2 + alpha; dz = (beta - alpha) / nbz;}
+		if (sf::Keyboard::isKeyPressed(sf::Keyboard::C)) { r += 0.003;  alpha = alpha2 * r; beta = beta2 + alpha; dy = 2.0 * M_PI * r / nby; dz = (beta - alpha) / nbz; }
+		if (sf::Keyboard::isKeyPressed(sf::Keyboard::V)) { r -= 0.003;  alpha = alpha2 * r; beta = beta2 + alpha; dy = 2.0 * M_PI * r / nby; dz = (beta - alpha) / nbz; }
+		if (sf::Keyboard::isKeyPressed(sf::Keyboard::B)) { alpha2 += 0.003; alpha = alpha2 * r; beta = beta2 + alpha; dz = (beta - alpha) / nbz; }
+		if (sf::Keyboard::isKeyPressed(sf::Keyboard::N)) { alpha2 -= 0.003;  alpha = alpha2 * r; beta = beta2 + alpha; dz = (beta - alpha) / nbz; }
 		if (sf::Keyboard::isKeyPressed(sf::Keyboard::K)) speed += 0.0001;
-		if (sf::Keyboard::isKeyPressed(sf::Keyboard::L)) if(speed-0.0001>0) speed -= 0.0001;
-		if (sf::Keyboard::isKeyPressed(sf::Keyboard::G)) {beta2 += 0.03; beta += 0.03; dz = (beta - alpha) / nbz;}
-		if (sf::Keyboard::isKeyPressed(sf::Keyboard::H)) {beta2 -= 0.03; beta -= 0.03; dz = (beta - alpha) / nbz;}
-		
+		if (sf::Keyboard::isKeyPressed(sf::Keyboard::L)) if (speed - 0.0001 > 0) speed -= 0.0001;
+		if (sf::Keyboard::isKeyPressed(sf::Keyboard::G)) { beta2 += 0.03; beta += 0.03; dz = (beta - alpha) / nbz; }
+		if (sf::Keyboard::isKeyPressed(sf::Keyboard::H)) { beta2 -= 0.03; beta -= 0.03; dz = (beta - alpha) / nbz; }
+
 		/*
-            if (sf::Keyboard::isKeyPressed(sf::Keyboard::Escape))
-            {
-                focus = false;
-                window.setMouseCursorVisible(true);
-            }*/
-			if (sf::Keyboard::isKeyPressed(sf::Keyboard::Escape)) window.close();
-
-
-            if(sf::Mouse::isButtonPressed(sf::Mouse::Left))
-            {
-                focus = true;
-                window.setMouseCursorVisible(false);
-            }
-
-            if (sf::Keyboard::isKeyPressed(sf::Keyboard::W))
-            {
-				tmpinside = inside;
-				tmpother = other;
-
-				tmppos0 = pos0;
-				tmppos1 = pos1;
-				tmppos2 = pos2;
-
-				tmpx00 = x00;
-				tmpx01 = x01;
-				tmpx02 = x02;
-				tmpx10 = x10;
-				tmpx11 = x11;
-				tmpx12 = x12;
-				tmpx20 = x20;
-				tmpx21 = x21;
-				tmpx22 = x22;
-
-				if (inside)
-				{
-						vl = sqrt(1.0 - x02 * x02);
-						geoang = atan(x02 / vl);
-
-						guder = asinh(tan(geoang));
-						
-						newang = atan(sinh(guder - speed));
-
-						proj0 = x00 / vl;
-						proj1 = x01 / vl;
-
-						rayon = pos2 / cos(geoang);
-						pos2 = rayon * cos(newang);
-
-						if (pos2 > beta)
-						{
-							newang = acos(beta / rayon);
-							distrem = speed - guder + asinh(tan(newang));
-							
-							other = !other;
-
-							mat[0] = x00;
-							mat[3] = x01;
-							mat[6] = x02;
-
-							mat[1] = -sin(geoang) * proj0;
-							mat[4] = -sin(geoang) * proj1;
-							mat[7] = cos(geoang);
-
-							mat[2] = mat[3] * mat[7] - mat[6] * mat[4];
-							mat[5] = mat[6] * mat[1] - mat[0] * mat[7];
-							mat[8] = mat[0] * mat[4] - mat[3] * mat[1];
-
-							mat1[0] = cos(newang) * proj0;
-							mat1[3] = cos(newang) * proj1;
-							mat1[6] = sin(newang);
-
-							mat1[1] = -sin(newang) * proj0;
-							mat1[4] = -sin(newang) * proj1;
-							mat1[7] = cos(newang);
-
-							mat1[2] = mat[2];
-							mat1[5] = mat[5];
-							mat1[8] = mat[8];
-
-							matinv2(mat, inv);
-							matmult2(mat1, inv, mat);
-
-							x00 = mat1[0];
-							x01 = mat1[3];
-							x02 = -mat1[6];
-
-							matact2(mat, x10, x11, x12, nvecn);
-							x10 = nvecn[0]; x11 = nvecn[1]; x12 = -nvecn[2];
-							matact2(mat, x20, x21, x22, nvecn);
-							x20 = nvecn[0]; x21 = nvecn[1]; x22 = -nvecn[2];
-
-							pos0 += rayon * (sin(geoang) - sin(newang)) * proj0;
-							pos1 += rayon * (sin(geoang) - sin(newang)) * proj1;
-							
-							////////////////////////////////////////
-							
-							vl = sqrt(1.0 - x02 * x02);
-							geoang = atan(x02 / vl);
-
-							guder = asinh(tan(geoang));
-
-							newang = atan(sinh(guder - distrem));
-
-							proj0 = x00 / vl;
-							proj1 = x01 / vl;
-
-							pos2 = rayon * cos(newang);
-
-							mat[0] = x00;
-							mat[3] = x01;
-							mat[6] = x02;
-
-							mat[1] = -sin(geoang) * proj0;
-							mat[4] = -sin(geoang) * proj1;
-							mat[7] = cos(geoang);
-
-							mat[2] = mat[3] * mat[7] - mat[6] * mat[4];
-							mat[5] = mat[6] * mat[1] - mat[0] * mat[7];
-							mat[8] = mat[0] * mat[4] - mat[3] * mat[1];
-
-							mat1[0] = cos(newang) * proj0;
-							mat1[3] = cos(newang) * proj1;
-							mat1[6] = sin(newang);
-
-							mat1[1] = -sin(newang) * proj0;
-							mat1[4] = -sin(newang) * proj1;
-							mat1[7] = cos(newang);
-
-							mat1[2] = mat[2];
-							mat1[5] = mat[5];
-							mat1[8] = mat[8];
-
-							matinv2(mat, inv);
-							matmult2(mat1, inv, mat);
-
-							x00 = mat1[0];
-							x01 = mat1[3];
-							x02 = mat1[6];
-
-							matact2(mat, x10, x11, x12, nvecn);
-							x10 = nvecn[0]; x11 = nvecn[1]; x12 = nvecn[2];
-							matact2(mat, x20, x21, x22, nvecn);
-							x20 = nvecn[0]; x21 = nvecn[1]; x22 = nvecn[2];
-
-							pos0 += rayon * (sin(geoang) - sin(newang)) * proj0;
-							pos1 += rayon * (sin(geoang) - sin(newang)) * proj1;
-							
-							////////////////////////////////////////
-						}
-						else
-						{
-							if (pos2 < alpha)
-							{
-								inside = false;
-								newang = -acos(alpha / rayon);
-								distrem = speed - guder + asinh(tan(newang));
-							}
-
-
-							mat[0] = x00;
-							mat[3] = x01;
-							mat[6] = x02;
-
-							mat[1] = -sin(geoang) * proj0;
-							mat[4] = -sin(geoang) * proj1;
-							mat[7] = cos(geoang);
-
-							mat[2] = mat[3] * mat[7] - mat[6] * mat[4];
-							mat[5] = mat[6] * mat[1] - mat[0] * mat[7];
-							mat[8] = mat[0] * mat[4] - mat[3] * mat[1];
-
-							mat1[0] = cos(newang) * proj0;
-							mat1[3] = cos(newang) * proj1;
-							mat1[6] = sin(newang);
-
-							mat1[1] = -sin(newang) * proj0;
-							mat1[4] = -sin(newang) * proj1;
-							mat1[7] = cos(newang);
-
-							mat1[2] = mat[2];
-							mat1[5] = mat[5];
-							mat1[8] = mat[8];
-
-							matinv2(mat, inv);
-							matmult2(mat1, inv, mat);
-
-							x00 = mat1[0];
-							x01 = mat1[3];
-							x02 = mat1[6];
-
-							matact2(mat, x10, x11, x12, nvecn);
-							x10 = nvecn[0]; x11 = nvecn[1]; x12 = nvecn[2];
-							matact2(mat, x20, x21, x22, nvecn);
-							x20 = nvecn[0]; x21 = nvecn[1]; x22 = nvecn[2];
-
-							pos0 += rayon * (sin(geoang) - sin(newang)) * proj0;
-							pos1 += rayon * (sin(geoang) - sin(newang)) * proj1;
-
-							if (!inside)
-							{
-								pos0 /= bigr;
-								pos1 /= r;
-
-								npos[0] = sin(pos0) * (bigr + r * cos(pos1));
-								npos[1] = cos(pos0) * (bigr + r * cos(pos1));
-								npos[2] = r * sin(pos1);
-
-								tormat2(pos0, pos1, mat1);
-								matflip2cpu(mat1, inv);
-								matact2(inv, x00, x01, x02, nvecn);
-								x00 = nvecn[0]; x01 = nvecn[1]; x02 = nvecn[2];
-								matact2(inv, x10, x11, x12, nvecn);
-								x10 = nvecn[0]; x11 = nvecn[1]; x12 = nvecn[2];
-								matact2(inv, x20, x21, x22, nvecn);
-								x20 = nvecn[0]; x21 = nvecn[1]; x22 = nvecn[2];
-
-								pos0 = npos[0];
-								pos1 = npos[1];
-								pos2 = npos[2];
-
-								pos0 += x00 * distrem;
-								pos1 += x01 * distrem;
-								pos2 += x02 * distrem;
-							}
-						}
-				}
-				else
-				{
-					torcoll = toruscoll2(x00, pos0, x01, pos1, x02, pos2, r * r, bigr * bigr);
-					if (torcoll == 65536 || torcoll > speed)
-					{
-						pos0 += x00 * speed;
-						pos1 += x01 * speed;
-						pos2 += x02 * speed;
-					}
-					else
-					{
-						tor0 = pos0 + torcoll * x00;
-						tor1 = pos1 + torcoll * x01;
-						tor2 = pos2 + torcoll * x02;
-						xyvec = sqrt(tor0 * tor0 + tor1 * tor1);
-
-						theta = asin(tor2 / r);
-						if (xyvec < bigr) theta = M_PI - theta;
-						if (theta < 0) theta += 2.0 * M_PI;
-
-						phi = acos(tor1 / xyvec);
-						if (tor0 < 0) phi *= -1;
-						if (phi < 0) phi += 2.0 * M_PI;
-
-						tormat2(phi, theta, mat1);
-						matinv2(mat1, inv);
-						matflipcpu(inv, mat1);
-						matact2(mat1, x00, x01, x02, nvecn);
-						x00 = nvecn[0]; x01 = nvecn[1]; x02 = nvecn[2];
-						matact2(mat1, x10, x11, x12, nvecn);
-						x10 = nvecn[0]; x11 = nvecn[1]; x12 = nvecn[2];
-						matact2(mat1, x20, x21, x22, nvecn);
-						x20 = nvecn[0]; x21 = nvecn[1]; x22 = nvecn[2];
-
-						pos0 = phi * (bigr);
-						pos1 = theta * r;
-						pos2 = alpha;
-
-						inside = true;
-
-						distrem = speed - torcoll;
-
-						vl = sqrt(1 - x02 * x02);
-						geoang = atan(x02 / vl);
-
-						guder = asinh(tan(geoang));
-
-						newang = atan(sinh(guder - distrem));
-
-						proj0 = x00 / vl;
-						proj1 = x01 / vl;
-
-						rayon = pos2 / cos(geoang);
-						pos2 = rayon * cos(newang);
-
-
-						mat[0] = x00;
-						mat[3] = x01;
-						mat[6] = x02;
-
-						mat[1] = -sin(geoang) * proj0;
-						mat[4] = -sin(geoang) * proj1;
-						mat[7] = cos(geoang);
-
-						mat[2] = mat[3] * mat[7] - mat[6] * mat[4];
-						mat[5] = mat[6] * mat[1] - mat[0] * mat[7];
-						mat[8] = mat[0] * mat[4] - mat[3] * mat[1];
-
-						mat1[0] = cos(newang) * proj0;
-						mat1[3] = cos(newang) * proj1;
-						mat1[6] = sin(newang);
-
-						mat1[1] = -sin(newang) * proj0;
-						mat1[4] = -sin(newang) * proj1;
-						mat1[7] = cos(newang);
-
-						mat1[2] = mat[2];
-						mat1[5] = mat[5];
-						mat1[8] = mat[8];
-
-						matinv2(mat, inv);
-						matmult2(mat1, inv, mat);
-
-						x00 = mat1[0];
-						x01 = mat1[3];
-						x02 = mat1[6];
-
-						matact2(mat, x10, x11, x12, nvecn);
-						x10 = nvecn[0]; x11 = nvecn[1]; x12 = nvecn[2];
-						matact2(mat, x20, x21, x22, nvecn);
-						x20 = nvecn[0]; x21 = nvecn[1]; x22 = nvecn[2];
-
-						pos0 += rayon * (sin(geoang) - sin(newang)) * proj0;
-						pos1 += rayon * (sin(geoang) - sin(newang)) * proj1;
-					}
-				}
-
-				if (inside)
-				{
-					pos0 = fmod(pos0, 2.0 * M_PI * bigr);
-					pos0 += signbit(pos0) * 2 * M_PI * bigr;
-
-					pos1 = fmod(pos1, 2.0 * M_PI * r);
-					pos1 += signbit(pos1) * 2.0 * M_PI * r;
-
-					currx = floor(pos0 * nbx / (2.0 * M_PI * bigr));
-					curry = floor(pos1 * nby / (2.0 * M_PI * r));
-					currz = floor((pos2 - alpha) * nbz / (beta - alpha));
-
-					if (other)
-					{
-						if (blocks2[currx + nbx * curry + nbx * nby * currz])
-						{
-							inside = tmpinside;
-							other = tmpother;
-
-							pos0 = tmppos0;
-							pos1 = tmppos1;
-							pos2 = tmppos2;
-
-							x00 = tmpx00;
-							x01 = tmpx01;
-							x02 = tmpx02;
-							x10 = tmpx10;
-							x11 = tmpx11;
-							x12 = tmpx12;
-							x20 = tmpx20;
-							x21 = tmpx21;
-							x22 = tmpx22;
-						}
-					}
-					else
-					{
-						if (blocks1[currx + nbx * curry + nbx * nby * currz])
-						{
-							inside = tmpinside;
-							other = tmpother;
-
-							pos0 = tmppos0;
-							pos1 = tmppos1;
-							pos2 = tmppos2;
-
-							x00 = tmpx00;
-							x01 = tmpx01;
-							x02 = tmpx02;
-							x10 = tmpx10;
-							x11 = tmpx11;
-							x12 = tmpx12;
-							x20 = tmpx20;
-							x21 = tmpx21;
-							x22 = tmpx22;
-						}
-					}
-					
-				}
-
-            }
-
-			if (sf::Keyboard::isKeyPressed(sf::Keyboard::D))
+			if (sf::Keyboard::isKeyPressed(sf::Keyboard::Escape))
 			{
-				newx00 = x00;
-				newx01 = x01;
-				newx02 = x02;
+				focus = false;
+				window.setMouseCursorVisible(true);
+			}*/
+		if (sf::Keyboard::isKeyPressed(sf::Keyboard::Escape)) window.close();
 
-				x00 = x10;
-				x01 = x11;
-				x02 = x12;
 
-				x10 = newx00;
-				x11 = newx01;
-				x12 = newx02;
+		if (sf::Mouse::isButtonPressed(sf::Mouse::Left))
+		{
+			focus = true;
+			window.setMouseCursorVisible(false);
+		}
 
-				tmpinside = inside;
-				tmpother = other;
+		if (sf::Keyboard::isKeyPressed(sf::Keyboard::W))
+		{
+			tmpinside = inside;
+			tmpother = other;
 
-				tmppos0 = pos0;
-				tmppos1 = pos1;
-				tmppos2 = pos2;
+			tmppos0 = pos0;
+			tmppos1 = pos1;
+			tmppos2 = pos2;
 
-				tmpx00 = x00;
-				tmpx01 = x01;
-				tmpx02 = x02;
-				tmpx10 = x10;
-				tmpx11 = x11;
-				tmpx12 = x12;
-				tmpx20 = x20;
-				tmpx21 = x21;
-				tmpx22 = x22;
+			tmpx00 = x00;
+			tmpx01 = x01;
+			tmpx02 = x02;
+			tmpx10 = x10;
+			tmpx11 = x11;
+			tmpx12 = x12;
+			tmpx20 = x20;
+			tmpx21 = x21;
+			tmpx22 = x22;
 
-				if (inside)
+			if (inside)
+			{
+				vl = sqrt(1.0 - x02 * x02);
+				geoang = atan(x02 / vl);
+
+				guder = asinh(tan(geoang));
+
+				newang = atan(sinh(guder - speed));
+
+				proj0 = x00 / vl;
+				proj1 = x01 / vl;
+
+				rayon = pos2 / cos(geoang);
+				pos2 = rayon * cos(newang);
+
+				if (pos2 > beta)
 				{
+					newang = acos(beta / rayon);
+					distrem = speed - guder + asinh(tan(newang));
+
+					other = !other;
+
+					mat[0] = x00;
+					mat[3] = x01;
+					mat[6] = x02;
+
+					mat[1] = -sin(geoang) * proj0;
+					mat[4] = -sin(geoang) * proj1;
+					mat[7] = cos(geoang);
+
+					mat[2] = mat[3] * mat[7] - mat[6] * mat[4];
+					mat[5] = mat[6] * mat[1] - mat[0] * mat[7];
+					mat[8] = mat[0] * mat[4] - mat[3] * mat[1];
+
+					mat1[0] = cos(newang) * proj0;
+					mat1[3] = cos(newang) * proj1;
+					mat1[6] = sin(newang);
+
+					mat1[1] = -sin(newang) * proj0;
+					mat1[4] = -sin(newang) * proj1;
+					mat1[7] = cos(newang);
+
+					mat1[2] = mat[2];
+					mat1[5] = mat[5];
+					mat1[8] = mat[8];
+
+					matinv2(mat, inv);
+					matmult2(mat1, inv, mat);
+
+					x00 = mat1[0];
+					x01 = mat1[3];
+					x02 = -mat1[6];
+
+					matact2(mat, x10, x11, x12, nvecn);
+					x10 = nvecn[0]; x11 = nvecn[1]; x12 = -nvecn[2];
+					matact2(mat, x20, x21, x22, nvecn);
+					x20 = nvecn[0]; x21 = nvecn[1]; x22 = -nvecn[2];
+
+					pos0 += rayon * (sin(geoang) - sin(newang)) * proj0;
+					pos1 += rayon * (sin(geoang) - sin(newang)) * proj1;
+
+					////////////////////////////////////////
+
 					vl = sqrt(1.0 - x02 * x02);
 					geoang = atan(x02 / vl);
 
 					guder = asinh(tan(geoang));
 
-					newang = atan(sinh(guder - speed));
+					newang = atan(sinh(guder - distrem));
+
+					proj0 = x00 / vl;
+					proj1 = x01 / vl;
+
+					pos2 = rayon * cos(newang);
+
+					mat[0] = x00;
+					mat[3] = x01;
+					mat[6] = x02;
+
+					mat[1] = -sin(geoang) * proj0;
+					mat[4] = -sin(geoang) * proj1;
+					mat[7] = cos(geoang);
+
+					mat[2] = mat[3] * mat[7] - mat[6] * mat[4];
+					mat[5] = mat[6] * mat[1] - mat[0] * mat[7];
+					mat[8] = mat[0] * mat[4] - mat[3] * mat[1];
+
+					mat1[0] = cos(newang) * proj0;
+					mat1[3] = cos(newang) * proj1;
+					mat1[6] = sin(newang);
+
+					mat1[1] = -sin(newang) * proj0;
+					mat1[4] = -sin(newang) * proj1;
+					mat1[7] = cos(newang);
+
+					mat1[2] = mat[2];
+					mat1[5] = mat[5];
+					mat1[8] = mat[8];
+
+					matinv2(mat, inv);
+					matmult2(mat1, inv, mat);
+
+					x00 = mat1[0];
+					x01 = mat1[3];
+					x02 = mat1[6];
+
+					matact2(mat, x10, x11, x12, nvecn);
+					x10 = nvecn[0]; x11 = nvecn[1]; x12 = nvecn[2];
+					matact2(mat, x20, x21, x22, nvecn);
+					x20 = nvecn[0]; x21 = nvecn[1]; x22 = nvecn[2];
+
+					pos0 += rayon * (sin(geoang) - sin(newang)) * proj0;
+					pos1 += rayon * (sin(geoang) - sin(newang)) * proj1;
+
+					////////////////////////////////////////
+				}
+				else
+				{
+					if (pos2 < alpha)
+					{
+						inside = false;
+						newang = -acos(alpha / rayon);
+						distrem = speed - guder + asinh(tan(newang));
+					}
+
+
+					mat[0] = x00;
+					mat[3] = x01;
+					mat[6] = x02;
+
+					mat[1] = -sin(geoang) * proj0;
+					mat[4] = -sin(geoang) * proj1;
+					mat[7] = cos(geoang);
+
+					mat[2] = mat[3] * mat[7] - mat[6] * mat[4];
+					mat[5] = mat[6] * mat[1] - mat[0] * mat[7];
+					mat[8] = mat[0] * mat[4] - mat[3] * mat[1];
+
+					mat1[0] = cos(newang) * proj0;
+					mat1[3] = cos(newang) * proj1;
+					mat1[6] = sin(newang);
+
+					mat1[1] = -sin(newang) * proj0;
+					mat1[4] = -sin(newang) * proj1;
+					mat1[7] = cos(newang);
+
+					mat1[2] = mat[2];
+					mat1[5] = mat[5];
+					mat1[8] = mat[8];
+
+					matinv2(mat, inv);
+					matmult2(mat1, inv, mat);
+
+					x00 = mat1[0];
+					x01 = mat1[3];
+					x02 = mat1[6];
+
+					matact2(mat, x10, x11, x12, nvecn);
+					x10 = nvecn[0]; x11 = nvecn[1]; x12 = nvecn[2];
+					matact2(mat, x20, x21, x22, nvecn);
+					x20 = nvecn[0]; x21 = nvecn[1]; x22 = nvecn[2];
+
+					pos0 += rayon * (sin(geoang) - sin(newang)) * proj0;
+					pos1 += rayon * (sin(geoang) - sin(newang)) * proj1;
+
+					if (!inside)
+					{
+						pos0 /= bigr;
+						pos1 /= r;
+
+						npos[0] = sin(pos0) * (bigr + r * cos(pos1));
+						npos[1] = cos(pos0) * (bigr + r * cos(pos1));
+						npos[2] = r * sin(pos1);
+
+						tormat2(pos0, pos1, mat1);
+						matflip2cpu(mat1, inv);
+						matact2(inv, x00, x01, x02, nvecn);
+						x00 = nvecn[0]; x01 = nvecn[1]; x02 = nvecn[2];
+						matact2(inv, x10, x11, x12, nvecn);
+						x10 = nvecn[0]; x11 = nvecn[1]; x12 = nvecn[2];
+						matact2(inv, x20, x21, x22, nvecn);
+						x20 = nvecn[0]; x21 = nvecn[1]; x22 = nvecn[2];
+
+						pos0 = npos[0];
+						pos1 = npos[1];
+						pos2 = npos[2];
+
+						pos0 += x00 * distrem;
+						pos1 += x01 * distrem;
+						pos2 += x02 * distrem;
+					}
+				}
+			}
+			else
+			{
+				torcoll = toruscoll2(x00, pos0, x01, pos1, x02, pos2, r * r, bigr * bigr);
+				if (torcoll == 65536 || torcoll > speed)
+				{
+					pos0 += x00 * speed;
+					pos1 += x01 * speed;
+					pos2 += x02 * speed;
+				}
+				else
+				{
+					tor0 = pos0 + torcoll * x00;
+					tor1 = pos1 + torcoll * x01;
+					tor2 = pos2 + torcoll * x02;
+					xyvec = sqrt(tor0 * tor0 + tor1 * tor1);
+
+					theta = asin(tor2 / r);
+					if (xyvec < bigr) theta = M_PI - theta;
+					if (theta < 0) theta += 2.0 * M_PI;
+
+					phi = acos(tor1 / xyvec);
+					if (tor0 < 0) phi *= -1;
+					if (phi < 0) phi += 2.0 * M_PI;
+
+					tormat2(phi, theta, mat1);
+					matinv2(mat1, inv);
+					matflipcpu(inv, mat1);
+					matact2(mat1, x00, x01, x02, nvecn);
+					x00 = nvecn[0]; x01 = nvecn[1]; x02 = nvecn[2];
+					matact2(mat1, x10, x11, x12, nvecn);
+					x10 = nvecn[0]; x11 = nvecn[1]; x12 = nvecn[2];
+					matact2(mat1, x20, x21, x22, nvecn);
+					x20 = nvecn[0]; x21 = nvecn[1]; x22 = nvecn[2];
+
+					pos0 = phi * (bigr);
+					pos1 = theta * r;
+					pos2 = alpha;
+
+					inside = true;
+
+					distrem = speed - torcoll;
+
+					vl = sqrt(1 - x02 * x02);
+					geoang = atan(x02 / vl);
+
+					guder = asinh(tan(geoang));
+
+					newang = atan(sinh(guder - distrem));
 
 					proj0 = x00 / vl;
 					proj1 = x01 / vl;
@@ -708,397 +753,381 @@ int main()
 					rayon = pos2 / cos(geoang);
 					pos2 = rayon * cos(newang);
 
-					if (pos2 > beta)
+
+					mat[0] = x00;
+					mat[3] = x01;
+					mat[6] = x02;
+
+					mat[1] = -sin(geoang) * proj0;
+					mat[4] = -sin(geoang) * proj1;
+					mat[7] = cos(geoang);
+
+					mat[2] = mat[3] * mat[7] - mat[6] * mat[4];
+					mat[5] = mat[6] * mat[1] - mat[0] * mat[7];
+					mat[8] = mat[0] * mat[4] - mat[3] * mat[1];
+
+					mat1[0] = cos(newang) * proj0;
+					mat1[3] = cos(newang) * proj1;
+					mat1[6] = sin(newang);
+
+					mat1[1] = -sin(newang) * proj0;
+					mat1[4] = -sin(newang) * proj1;
+					mat1[7] = cos(newang);
+
+					mat1[2] = mat[2];
+					mat1[5] = mat[5];
+					mat1[8] = mat[8];
+
+					matinv2(mat, inv);
+					matmult2(mat1, inv, mat);
+
+					x00 = mat1[0];
+					x01 = mat1[3];
+					x02 = mat1[6];
+
+					matact2(mat, x10, x11, x12, nvecn);
+					x10 = nvecn[0]; x11 = nvecn[1]; x12 = nvecn[2];
+					matact2(mat, x20, x21, x22, nvecn);
+					x20 = nvecn[0]; x21 = nvecn[1]; x22 = nvecn[2];
+
+					pos0 += rayon * (sin(geoang) - sin(newang)) * proj0;
+					pos1 += rayon * (sin(geoang) - sin(newang)) * proj1;
+				}
+			}
+
+			if (inside)
+			{
+				pos0 = fmod(pos0, 2.0 * M_PI * bigr);
+				pos0 += signbit(pos0) * 2 * M_PI * bigr;
+
+				pos1 = fmod(pos1, 2.0 * M_PI * r);
+				pos1 += signbit(pos1) * 2.0 * M_PI * r;
+
+				currx = floor(pos0 * nbx / (2.0 * M_PI * bigr));
+				curry = floor(pos1 * nby / (2.0 * M_PI * r));
+				currz = floor((pos2 - alpha) * nbz / (beta - alpha));
+
+				if (other)
+				{
+					if (blocks2[currx + nbx * curry + nbx * nby * currz])
 					{
-						newang = acos(beta / rayon);
-						distrem = speed - guder + asinh(tan(newang));
+						inside = tmpinside;
+						other = tmpother;
 
-						other = !other;
+						pos0 = tmppos0;
+						pos1 = tmppos1;
+						pos2 = tmppos2;
 
-						mat[0] = x00;
-						mat[3] = x01;
-						mat[6] = x02;
-
-						mat[1] = -sin(geoang) * proj0;
-						mat[4] = -sin(geoang) * proj1;
-						mat[7] = cos(geoang);
-
-						mat[2] = mat[3] * mat[7] - mat[6] * mat[4];
-						mat[5] = mat[6] * mat[1] - mat[0] * mat[7];
-						mat[8] = mat[0] * mat[4] - mat[3] * mat[1];
-
-						mat1[0] = cos(newang) * proj0;
-						mat1[3] = cos(newang) * proj1;
-						mat1[6] = sin(newang);
-
-						mat1[1] = -sin(newang) * proj0;
-						mat1[4] = -sin(newang) * proj1;
-						mat1[7] = cos(newang);
-
-						mat1[2] = mat[2];
-						mat1[5] = mat[5];
-						mat1[8] = mat[8];
-
-						matinv2(mat, inv);
-						matmult2(mat1, inv, mat);
-
-						x00 = mat1[0];
-						x01 = mat1[3];
-						x02 = -mat1[6];
-
-						matact2(mat, x10, x11, x12, nvecn);
-						x10 = nvecn[0]; x11 = nvecn[1]; x12 = -nvecn[2];
-						matact2(mat, x20, x21, x22, nvecn);
-						x20 = nvecn[0]; x21 = nvecn[1]; x22 = -nvecn[2];
-
-						pos0 += rayon * (sin(geoang) - sin(newang)) * proj0;
-						pos1 += rayon * (sin(geoang) - sin(newang)) * proj1;
-
-						////////////////////////////////////////
-
-						vl = sqrt(1.0 - x02 * x02);
-						geoang = atan(x02 / vl);
-
-						guder = asinh(tan(geoang));
-
-						newang = atan(sinh(guder - distrem));
-
-						proj0 = x00 / vl;
-						proj1 = x01 / vl;
-
-						pos2 = rayon * cos(newang);
-
-						mat[0] = x00;
-						mat[3] = x01;
-						mat[6] = x02;
-
-						mat[1] = -sin(geoang) * proj0;
-						mat[4] = -sin(geoang) * proj1;
-						mat[7] = cos(geoang);
-
-						mat[2] = mat[3] * mat[7] - mat[6] * mat[4];
-						mat[5] = mat[6] * mat[1] - mat[0] * mat[7];
-						mat[8] = mat[0] * mat[4] - mat[3] * mat[1];
-
-						mat1[0] = cos(newang) * proj0;
-						mat1[3] = cos(newang) * proj1;
-						mat1[6] = sin(newang);
-
-						mat1[1] = -sin(newang) * proj0;
-						mat1[4] = -sin(newang) * proj1;
-						mat1[7] = cos(newang);
-
-						mat1[2] = mat[2];
-						mat1[5] = mat[5];
-						mat1[8] = mat[8];
-
-						matinv2(mat, inv);
-						matmult2(mat1, inv, mat);
-
-						x00 = mat1[0];
-						x01 = mat1[3];
-						x02 = mat1[6];
-
-						matact2(mat, x10, x11, x12, nvecn);
-						x10 = nvecn[0]; x11 = nvecn[1]; x12 = nvecn[2];
-						matact2(mat, x20, x21, x22, nvecn);
-						x20 = nvecn[0]; x21 = nvecn[1]; x22 = nvecn[2];
-
-						pos0 += rayon * (sin(geoang) - sin(newang)) * proj0;
-						pos1 += rayon * (sin(geoang) - sin(newang)) * proj1;
-
-						////////////////////////////////////////
-					}
-					else
-					{
-						if (pos2 < alpha)
-						{
-							inside = false;
-							newang = -acos(alpha / rayon);
-							distrem = speed - guder + asinh(tan(newang));
-						}
-
-
-						mat[0] = x00;
-						mat[3] = x01;
-						mat[6] = x02;
-
-						mat[1] = -sin(geoang) * proj0;
-						mat[4] = -sin(geoang) * proj1;
-						mat[7] = cos(geoang);
-
-						mat[2] = mat[3] * mat[7] - mat[6] * mat[4];
-						mat[5] = mat[6] * mat[1] - mat[0] * mat[7];
-						mat[8] = mat[0] * mat[4] - mat[3] * mat[1];
-
-						mat1[0] = cos(newang) * proj0;
-						mat1[3] = cos(newang) * proj1;
-						mat1[6] = sin(newang);
-
-						mat1[1] = -sin(newang) * proj0;
-						mat1[4] = -sin(newang) * proj1;
-						mat1[7] = cos(newang);
-
-						mat1[2] = mat[2];
-						mat1[5] = mat[5];
-						mat1[8] = mat[8];
-
-						matinv2(mat, inv);
-						matmult2(mat1, inv, mat);
-
-						x00 = mat1[0];
-						x01 = mat1[3];
-						x02 = mat1[6];
-
-						matact2(mat, x10, x11, x12, nvecn);
-						x10 = nvecn[0]; x11 = nvecn[1]; x12 = nvecn[2];
-						matact2(mat, x20, x21, x22, nvecn);
-						x20 = nvecn[0]; x21 = nvecn[1]; x22 = nvecn[2];
-
-						pos0 += rayon * (sin(geoang) - sin(newang)) * proj0;
-						pos1 += rayon * (sin(geoang) - sin(newang)) * proj1;
-
-						if (!inside)
-						{
-							pos0 /= bigr;
-							pos1 /= r;
-
-							npos[0] = sin(pos0) * (bigr + r * cos(pos1));
-							npos[1] = cos(pos0) * (bigr + r * cos(pos1));
-							npos[2] = r * sin(pos1);
-
-							tormat2(pos0, pos1, mat1);
-							matflip2cpu(mat1, inv);
-							matact2(inv, x00, x01, x02, nvecn);
-							x00 = nvecn[0]; x01 = nvecn[1]; x02 = nvecn[2];
-							matact2(inv, x10, x11, x12, nvecn);
-							x10 = nvecn[0]; x11 = nvecn[1]; x12 = nvecn[2];
-							matact2(inv, x20, x21, x22, nvecn);
-							x20 = nvecn[0]; x21 = nvecn[1]; x22 = nvecn[2];
-
-							pos0 = npos[0];
-							pos1 = npos[1];
-							pos2 = npos[2];
-
-							pos0 += x00 * distrem;
-							pos1 += x01 * distrem;
-							pos2 += x02 * distrem;
-						}
+						x00 = tmpx00;
+						x01 = tmpx01;
+						x02 = tmpx02;
+						x10 = tmpx10;
+						x11 = tmpx11;
+						x12 = tmpx12;
+						x20 = tmpx20;
+						x21 = tmpx21;
+						x22 = tmpx22;
 					}
 				}
 				else
 				{
-					torcoll = toruscoll2(x00, pos0, x01, pos1, x02, pos2, r * r, bigr * bigr);
-					if (torcoll == 65536 || torcoll > speed)
+					if (blocks1[currx + nbx * curry + nbx * nby * currz])
 					{
-						pos0 += x00 * speed;
-						pos1 += x01 * speed;
-						pos2 += x02 * speed;
-					}
-					else
-					{
-						tor0 = pos0 + torcoll * x00;
-						tor1 = pos1 + torcoll * x01;
-						tor2 = pos2 + torcoll * x02;
-						xyvec = sqrt(tor0 * tor0 + tor1 * tor1);
+						inside = tmpinside;
+						other = tmpother;
 
-						theta = asin(tor2 / r);
-						if (xyvec < bigr) theta = M_PI - theta;
-						if (theta < 0) theta += 2.0 * M_PI;
+						pos0 = tmppos0;
+						pos1 = tmppos1;
+						pos2 = tmppos2;
 
-						phi = acos(tor1 / xyvec);
-						if (tor0 < 0) phi *= -1;
-						if (phi < 0) phi += 2.0 * M_PI;
-
-						tormat2(phi, theta, mat1);
-						matinv2(mat1, inv);
-						matflipcpu(inv, mat1);
-						matact2(mat1, x00, x01, x02, nvecn);
-						x00 = nvecn[0]; x01 = nvecn[1]; x02 = nvecn[2];
-						matact2(mat1, x10, x11, x12, nvecn);
-						x10 = nvecn[0]; x11 = nvecn[1]; x12 = nvecn[2];
-						matact2(mat1, x20, x21, x22, nvecn);
-						x20 = nvecn[0]; x21 = nvecn[1]; x22 = nvecn[2];
-
-						pos0 = phi * (bigr);
-						pos1 = theta * r;
-						pos2 = alpha;
-
-						inside = true;
-
-						distrem = speed - torcoll;
-
-						vl = sqrt(1 - x02 * x02);
-						geoang = atan(x02 / vl);
-
-						guder = asinh(tan(geoang));
-
-						newang = atan(sinh(guder - distrem));
-
-						proj0 = x00 / vl;
-						proj1 = x01 / vl;
-
-						rayon = pos2 / cos(geoang);
-						pos2 = rayon * cos(newang);
-
-
-						mat[0] = x00;
-						mat[3] = x01;
-						mat[6] = x02;
-
-						mat[1] = -sin(geoang) * proj0;
-						mat[4] = -sin(geoang) * proj1;
-						mat[7] = cos(geoang);
-
-						mat[2] = mat[3] * mat[7] - mat[6] * mat[4];
-						mat[5] = mat[6] * mat[1] - mat[0] * mat[7];
-						mat[8] = mat[0] * mat[4] - mat[3] * mat[1];
-
-						mat1[0] = cos(newang) * proj0;
-						mat1[3] = cos(newang) * proj1;
-						mat1[6] = sin(newang);
-
-						mat1[1] = -sin(newang) * proj0;
-						mat1[4] = -sin(newang) * proj1;
-						mat1[7] = cos(newang);
-
-						mat1[2] = mat[2];
-						mat1[5] = mat[5];
-						mat1[8] = mat[8];
-
-						matinv2(mat, inv);
-						matmult2(mat1, inv, mat);
-
-						x00 = mat1[0];
-						x01 = mat1[3];
-						x02 = mat1[6];
-
-						matact2(mat, x10, x11, x12, nvecn);
-						x10 = nvecn[0]; x11 = nvecn[1]; x12 = nvecn[2];
-						matact2(mat, x20, x21, x22, nvecn);
-						x20 = nvecn[0]; x21 = nvecn[1]; x22 = nvecn[2];
-
-						pos0 += rayon * (sin(geoang) - sin(newang)) * proj0;
-						pos1 += rayon * (sin(geoang) - sin(newang)) * proj1;
+						x00 = tmpx00;
+						x01 = tmpx01;
+						x02 = tmpx02;
+						x10 = tmpx10;
+						x11 = tmpx11;
+						x12 = tmpx12;
+						x20 = tmpx20;
+						x21 = tmpx21;
+						x22 = tmpx22;
 					}
 				}
 
-				if (inside)
-				{
-					pos0 = fmod(pos0, 2.0 * M_PI * bigr);
-					pos0 += signbit(pos0) * 2 * M_PI * bigr;
-
-					pos1 = fmod(pos1, 2.0 * M_PI * r);
-					pos1 += signbit(pos1) * 2.0 * M_PI * r;
-
-					currx = floor(pos0 * nbx / (2.0 * M_PI * bigr));
-					curry = floor(pos1 * nby / (2.0 * M_PI * r));
-					currz = floor((pos2 - alpha) * nbz / (beta - alpha));
-
-					if (other)
-					{
-						if (blocks2[currx + nbx * curry + nbx * nby * currz])
-						{
-							inside = tmpinside;
-							other = tmpother;
-
-							pos0 = tmppos0;
-							pos1 = tmppos1;
-							pos2 = tmppos2;
-
-							x00 = tmpx00;
-							x01 = tmpx01;
-							x02 = tmpx02;
-							x10 = tmpx10;
-							x11 = tmpx11;
-							x12 = tmpx12;
-							x20 = tmpx20;
-							x21 = tmpx21;
-							x22 = tmpx22;
-						}
-					}
-					else
-					{
-						if (blocks1[currx + nbx * curry + nbx * nby * currz])
-						{
-							inside = tmpinside;
-							other = tmpother;
-
-							pos0 = tmppos0;
-							pos1 = tmppos1;
-							pos2 = tmppos2;
-
-							x00 = tmpx00;
-							x01 = tmpx01;
-							x02 = tmpx02;
-							x10 = tmpx10;
-							x11 = tmpx11;
-							x12 = tmpx12;
-							x20 = tmpx20;
-							x21 = tmpx21;
-							x22 = tmpx22;
-						}
-					}
-
-				}
-
-
-				newx00 = x00;
-				newx01 = x01;
-				newx02 = x02;
-
-				x00 = x10;
-				x01 = x11;
-				x02 = x12;
-
-				x10 = newx00;
-				x11 = newx01;
-				x12 = newx02;
 			}
 
-			if (sf::Keyboard::isKeyPressed(sf::Keyboard::A))
+		}
+
+		if (sf::Keyboard::isKeyPressed(sf::Keyboard::D))
+		{
+			newx00 = x00;
+			newx01 = x01;
+			newx02 = x02;
+
+			x00 = x10;
+			x01 = x11;
+			x02 = x12;
+
+			x10 = newx00;
+			x11 = newx01;
+			x12 = newx02;
+
+			tmpinside = inside;
+			tmpother = other;
+
+			tmppos0 = pos0;
+			tmppos1 = pos1;
+			tmppos2 = pos2;
+
+			tmpx00 = x00;
+			tmpx01 = x01;
+			tmpx02 = x02;
+			tmpx10 = x10;
+			tmpx11 = x11;
+			tmpx12 = x12;
+			tmpx20 = x20;
+			tmpx21 = x21;
+			tmpx22 = x22;
+
+			if (inside)
 			{
-				newx00 = x00;
-				newx01 = x01;
-				newx02 = x02;
+				vl = sqrt(1.0 - x02 * x02);
+				geoang = atan(x02 / vl);
 
-				x00 = x10;
-				x01 = x11;
-				x02 = x12;
+				guder = asinh(tan(geoang));
 
-				x10 = newx00;
-				x11 = newx01;
-				x12 = newx02;
+				newang = atan(sinh(guder - speed));
 
-				x00 = -x00;
-				x01 = -x01;
-				x02 = -x02;
+				proj0 = x00 / vl;
+				proj1 = x01 / vl;
 
-				tmpinside = inside;
-				tmpother = other;
+				rayon = pos2 / cos(geoang);
+				pos2 = rayon * cos(newang);
 
-				tmppos0 = pos0;
-				tmppos1 = pos1;
-				tmppos2 = pos2;
-
-				tmpx00 = x00;
-				tmpx01 = x01;
-				tmpx02 = x02;
-				tmpx10 = x10;
-				tmpx11 = x11;
-				tmpx12 = x12;
-				tmpx20 = x20;
-				tmpx21 = x21;
-				tmpx22 = x22;
-
-				if (inside)
+				if (pos2 > beta)
 				{
+					newang = acos(beta / rayon);
+					distrem = speed - guder + asinh(tan(newang));
+
+					other = !other;
+
+					mat[0] = x00;
+					mat[3] = x01;
+					mat[6] = x02;
+
+					mat[1] = -sin(geoang) * proj0;
+					mat[4] = -sin(geoang) * proj1;
+					mat[7] = cos(geoang);
+
+					mat[2] = mat[3] * mat[7] - mat[6] * mat[4];
+					mat[5] = mat[6] * mat[1] - mat[0] * mat[7];
+					mat[8] = mat[0] * mat[4] - mat[3] * mat[1];
+
+					mat1[0] = cos(newang) * proj0;
+					mat1[3] = cos(newang) * proj1;
+					mat1[6] = sin(newang);
+
+					mat1[1] = -sin(newang) * proj0;
+					mat1[4] = -sin(newang) * proj1;
+					mat1[7] = cos(newang);
+
+					mat1[2] = mat[2];
+					mat1[5] = mat[5];
+					mat1[8] = mat[8];
+
+					matinv2(mat, inv);
+					matmult2(mat1, inv, mat);
+
+					x00 = mat1[0];
+					x01 = mat1[3];
+					x02 = -mat1[6];
+
+					matact2(mat, x10, x11, x12, nvecn);
+					x10 = nvecn[0]; x11 = nvecn[1]; x12 = -nvecn[2];
+					matact2(mat, x20, x21, x22, nvecn);
+					x20 = nvecn[0]; x21 = nvecn[1]; x22 = -nvecn[2];
+
+					pos0 += rayon * (sin(geoang) - sin(newang)) * proj0;
+					pos1 += rayon * (sin(geoang) - sin(newang)) * proj1;
+
+					////////////////////////////////////////
+
 					vl = sqrt(1.0 - x02 * x02);
 					geoang = atan(x02 / vl);
 
 					guder = asinh(tan(geoang));
 
-					newang = atan(sinh(guder - speed));
+					newang = atan(sinh(guder - distrem));
+
+					proj0 = x00 / vl;
+					proj1 = x01 / vl;
+
+					pos2 = rayon * cos(newang);
+
+					mat[0] = x00;
+					mat[3] = x01;
+					mat[6] = x02;
+
+					mat[1] = -sin(geoang) * proj0;
+					mat[4] = -sin(geoang) * proj1;
+					mat[7] = cos(geoang);
+
+					mat[2] = mat[3] * mat[7] - mat[6] * mat[4];
+					mat[5] = mat[6] * mat[1] - mat[0] * mat[7];
+					mat[8] = mat[0] * mat[4] - mat[3] * mat[1];
+
+					mat1[0] = cos(newang) * proj0;
+					mat1[3] = cos(newang) * proj1;
+					mat1[6] = sin(newang);
+
+					mat1[1] = -sin(newang) * proj0;
+					mat1[4] = -sin(newang) * proj1;
+					mat1[7] = cos(newang);
+
+					mat1[2] = mat[2];
+					mat1[5] = mat[5];
+					mat1[8] = mat[8];
+
+					matinv2(mat, inv);
+					matmult2(mat1, inv, mat);
+
+					x00 = mat1[0];
+					x01 = mat1[3];
+					x02 = mat1[6];
+
+					matact2(mat, x10, x11, x12, nvecn);
+					x10 = nvecn[0]; x11 = nvecn[1]; x12 = nvecn[2];
+					matact2(mat, x20, x21, x22, nvecn);
+					x20 = nvecn[0]; x21 = nvecn[1]; x22 = nvecn[2];
+
+					pos0 += rayon * (sin(geoang) - sin(newang)) * proj0;
+					pos1 += rayon * (sin(geoang) - sin(newang)) * proj1;
+
+					////////////////////////////////////////
+				}
+				else
+				{
+					if (pos2 < alpha)
+					{
+						inside = false;
+						newang = -acos(alpha / rayon);
+						distrem = speed - guder + asinh(tan(newang));
+					}
+
+
+					mat[0] = x00;
+					mat[3] = x01;
+					mat[6] = x02;
+
+					mat[1] = -sin(geoang) * proj0;
+					mat[4] = -sin(geoang) * proj1;
+					mat[7] = cos(geoang);
+
+					mat[2] = mat[3] * mat[7] - mat[6] * mat[4];
+					mat[5] = mat[6] * mat[1] - mat[0] * mat[7];
+					mat[8] = mat[0] * mat[4] - mat[3] * mat[1];
+
+					mat1[0] = cos(newang) * proj0;
+					mat1[3] = cos(newang) * proj1;
+					mat1[6] = sin(newang);
+
+					mat1[1] = -sin(newang) * proj0;
+					mat1[4] = -sin(newang) * proj1;
+					mat1[7] = cos(newang);
+
+					mat1[2] = mat[2];
+					mat1[5] = mat[5];
+					mat1[8] = mat[8];
+
+					matinv2(mat, inv);
+					matmult2(mat1, inv, mat);
+
+					x00 = mat1[0];
+					x01 = mat1[3];
+					x02 = mat1[6];
+
+					matact2(mat, x10, x11, x12, nvecn);
+					x10 = nvecn[0]; x11 = nvecn[1]; x12 = nvecn[2];
+					matact2(mat, x20, x21, x22, nvecn);
+					x20 = nvecn[0]; x21 = nvecn[1]; x22 = nvecn[2];
+
+					pos0 += rayon * (sin(geoang) - sin(newang)) * proj0;
+					pos1 += rayon * (sin(geoang) - sin(newang)) * proj1;
+
+					if (!inside)
+					{
+						pos0 /= bigr;
+						pos1 /= r;
+
+						npos[0] = sin(pos0) * (bigr + r * cos(pos1));
+						npos[1] = cos(pos0) * (bigr + r * cos(pos1));
+						npos[2] = r * sin(pos1);
+
+						tormat2(pos0, pos1, mat1);
+						matflip2cpu(mat1, inv);
+						matact2(inv, x00, x01, x02, nvecn);
+						x00 = nvecn[0]; x01 = nvecn[1]; x02 = nvecn[2];
+						matact2(inv, x10, x11, x12, nvecn);
+						x10 = nvecn[0]; x11 = nvecn[1]; x12 = nvecn[2];
+						matact2(inv, x20, x21, x22, nvecn);
+						x20 = nvecn[0]; x21 = nvecn[1]; x22 = nvecn[2];
+
+						pos0 = npos[0];
+						pos1 = npos[1];
+						pos2 = npos[2];
+
+						pos0 += x00 * distrem;
+						pos1 += x01 * distrem;
+						pos2 += x02 * distrem;
+					}
+				}
+			}
+			else
+			{
+				torcoll = toruscoll2(x00, pos0, x01, pos1, x02, pos2, r * r, bigr * bigr);
+				if (torcoll == 65536 || torcoll > speed)
+				{
+					pos0 += x00 * speed;
+					pos1 += x01 * speed;
+					pos2 += x02 * speed;
+				}
+				else
+				{
+					tor0 = pos0 + torcoll * x00;
+					tor1 = pos1 + torcoll * x01;
+					tor2 = pos2 + torcoll * x02;
+					xyvec = sqrt(tor0 * tor0 + tor1 * tor1);
+
+					theta = asin(tor2 / r);
+					if (xyvec < bigr) theta = M_PI - theta;
+					if (theta < 0) theta += 2.0 * M_PI;
+
+					phi = acos(tor1 / xyvec);
+					if (tor0 < 0) phi *= -1;
+					if (phi < 0) phi += 2.0 * M_PI;
+
+					tormat2(phi, theta, mat1);
+					matinv2(mat1, inv);
+					matflipcpu(inv, mat1);
+					matact2(mat1, x00, x01, x02, nvecn);
+					x00 = nvecn[0]; x01 = nvecn[1]; x02 = nvecn[2];
+					matact2(mat1, x10, x11, x12, nvecn);
+					x10 = nvecn[0]; x11 = nvecn[1]; x12 = nvecn[2];
+					matact2(mat1, x20, x21, x22, nvecn);
+					x20 = nvecn[0]; x21 = nvecn[1]; x22 = nvecn[2];
+
+					pos0 = phi * (bigr);
+					pos1 = theta * r;
+					pos2 = alpha;
+
+					inside = true;
+
+					distrem = speed - torcoll;
+
+					vl = sqrt(1 - x02 * x02);
+					geoang = atan(x02 / vl);
+
+					guder = asinh(tan(geoang));
+
+					newang = atan(sinh(guder - distrem));
 
 					proj0 = x00 / vl;
 					proj1 = x01 / vl;
@@ -1106,390 +1135,397 @@ int main()
 					rayon = pos2 / cos(geoang);
 					pos2 = rayon * cos(newang);
 
-					if (pos2 > beta)
+
+					mat[0] = x00;
+					mat[3] = x01;
+					mat[6] = x02;
+
+					mat[1] = -sin(geoang) * proj0;
+					mat[4] = -sin(geoang) * proj1;
+					mat[7] = cos(geoang);
+
+					mat[2] = mat[3] * mat[7] - mat[6] * mat[4];
+					mat[5] = mat[6] * mat[1] - mat[0] * mat[7];
+					mat[8] = mat[0] * mat[4] - mat[3] * mat[1];
+
+					mat1[0] = cos(newang) * proj0;
+					mat1[3] = cos(newang) * proj1;
+					mat1[6] = sin(newang);
+
+					mat1[1] = -sin(newang) * proj0;
+					mat1[4] = -sin(newang) * proj1;
+					mat1[7] = cos(newang);
+
+					mat1[2] = mat[2];
+					mat1[5] = mat[5];
+					mat1[8] = mat[8];
+
+					matinv2(mat, inv);
+					matmult2(mat1, inv, mat);
+
+					x00 = mat1[0];
+					x01 = mat1[3];
+					x02 = mat1[6];
+
+					matact2(mat, x10, x11, x12, nvecn);
+					x10 = nvecn[0]; x11 = nvecn[1]; x12 = nvecn[2];
+					matact2(mat, x20, x21, x22, nvecn);
+					x20 = nvecn[0]; x21 = nvecn[1]; x22 = nvecn[2];
+
+					pos0 += rayon * (sin(geoang) - sin(newang)) * proj0;
+					pos1 += rayon * (sin(geoang) - sin(newang)) * proj1;
+				}
+			}
+
+			if (inside)
+			{
+				pos0 = fmod(pos0, 2.0 * M_PI * bigr);
+				pos0 += signbit(pos0) * 2 * M_PI * bigr;
+
+				pos1 = fmod(pos1, 2.0 * M_PI * r);
+				pos1 += signbit(pos1) * 2.0 * M_PI * r;
+
+				currx = floor(pos0 * nbx / (2.0 * M_PI * bigr));
+				curry = floor(pos1 * nby / (2.0 * M_PI * r));
+				currz = floor((pos2 - alpha) * nbz / (beta - alpha));
+
+				if (other)
+				{
+					if (blocks2[currx + nbx * curry + nbx * nby * currz])
 					{
-						newang = acos(beta / rayon);
-						distrem = speed - guder + asinh(tan(newang));
+						inside = tmpinside;
+						other = tmpother;
 
-						other = !other;
+						pos0 = tmppos0;
+						pos1 = tmppos1;
+						pos2 = tmppos2;
 
-						mat[0] = x00;
-						mat[3] = x01;
-						mat[6] = x02;
-
-						mat[1] = -sin(geoang) * proj0;
-						mat[4] = -sin(geoang) * proj1;
-						mat[7] = cos(geoang);
-
-						mat[2] = mat[3] * mat[7] - mat[6] * mat[4];
-						mat[5] = mat[6] * mat[1] - mat[0] * mat[7];
-						mat[8] = mat[0] * mat[4] - mat[3] * mat[1];
-
-						mat1[0] = cos(newang) * proj0;
-						mat1[3] = cos(newang) * proj1;
-						mat1[6] = sin(newang);
-
-						mat1[1] = -sin(newang) * proj0;
-						mat1[4] = -sin(newang) * proj1;
-						mat1[7] = cos(newang);
-
-						mat1[2] = mat[2];
-						mat1[5] = mat[5];
-						mat1[8] = mat[8];
-
-						matinv2(mat, inv);
-						matmult2(mat1, inv, mat);
-
-						x00 = mat1[0];
-						x01 = mat1[3];
-						x02 = -mat1[6];
-
-						matact2(mat, x10, x11, x12, nvecn);
-						x10 = nvecn[0]; x11 = nvecn[1]; x12 = -nvecn[2];
-						matact2(mat, x20, x21, x22, nvecn);
-						x20 = nvecn[0]; x21 = nvecn[1]; x22 = -nvecn[2];
-
-						pos0 += rayon * (sin(geoang) - sin(newang)) * proj0;
-						pos1 += rayon * (sin(geoang) - sin(newang)) * proj1;
-
-						////////////////////////////////////////
-
-						vl = sqrt(1.0 - x02 * x02);
-						geoang = atan(x02 / vl);
-
-						guder = asinh(tan(geoang));
-
-						newang = atan(sinh(guder - distrem));
-
-						proj0 = x00 / vl;
-						proj1 = x01 / vl;
-
-						pos2 = rayon * cos(newang);
-
-						mat[0] = x00;
-						mat[3] = x01;
-						mat[6] = x02;
-
-						mat[1] = -sin(geoang) * proj0;
-						mat[4] = -sin(geoang) * proj1;
-						mat[7] = cos(geoang);
-
-						mat[2] = mat[3] * mat[7] - mat[6] * mat[4];
-						mat[5] = mat[6] * mat[1] - mat[0] * mat[7];
-						mat[8] = mat[0] * mat[4] - mat[3] * mat[1];
-
-						mat1[0] = cos(newang) * proj0;
-						mat1[3] = cos(newang) * proj1;
-						mat1[6] = sin(newang);
-
-						mat1[1] = -sin(newang) * proj0;
-						mat1[4] = -sin(newang) * proj1;
-						mat1[7] = cos(newang);
-
-						mat1[2] = mat[2];
-						mat1[5] = mat[5];
-						mat1[8] = mat[8];
-
-						matinv2(mat, inv);
-						matmult2(mat1, inv, mat);
-
-						x00 = mat1[0];
-						x01 = mat1[3];
-						x02 = mat1[6];
-
-						matact2(mat, x10, x11, x12, nvecn);
-						x10 = nvecn[0]; x11 = nvecn[1]; x12 = nvecn[2];
-						matact2(mat, x20, x21, x22, nvecn);
-						x20 = nvecn[0]; x21 = nvecn[1]; x22 = nvecn[2];
-
-						pos0 += rayon * (sin(geoang) - sin(newang)) * proj0;
-						pos1 += rayon * (sin(geoang) - sin(newang)) * proj1;
-
-						////////////////////////////////////////
-					}
-					else
-					{
-						if (pos2 < alpha)
-						{
-							inside = false;
-							newang = -acos(alpha / rayon);
-							distrem = speed - guder + asinh(tan(newang));
-						}
-
-
-						mat[0] = x00;
-						mat[3] = x01;
-						mat[6] = x02;
-
-						mat[1] = -sin(geoang) * proj0;
-						mat[4] = -sin(geoang) * proj1;
-						mat[7] = cos(geoang);
-
-						mat[2] = mat[3] * mat[7] - mat[6] * mat[4];
-						mat[5] = mat[6] * mat[1] - mat[0] * mat[7];
-						mat[8] = mat[0] * mat[4] - mat[3] * mat[1];
-
-						mat1[0] = cos(newang) * proj0;
-						mat1[3] = cos(newang) * proj1;
-						mat1[6] = sin(newang);
-
-						mat1[1] = -sin(newang) * proj0;
-						mat1[4] = -sin(newang) * proj1;
-						mat1[7] = cos(newang);
-
-						mat1[2] = mat[2];
-						mat1[5] = mat[5];
-						mat1[8] = mat[8];
-
-						matinv2(mat, inv);
-						matmult2(mat1, inv, mat);
-
-						x00 = mat1[0];
-						x01 = mat1[3];
-						x02 = mat1[6];
-
-						matact2(mat, x10, x11, x12, nvecn);
-						x10 = nvecn[0]; x11 = nvecn[1]; x12 = nvecn[2];
-						matact2(mat, x20, x21, x22, nvecn);
-						x20 = nvecn[0]; x21 = nvecn[1]; x22 = nvecn[2];
-
-						pos0 += rayon * (sin(geoang) - sin(newang)) * proj0;
-						pos1 += rayon * (sin(geoang) - sin(newang)) * proj1;
-
-						if (!inside)
-						{
-							pos0 /= bigr;
-							pos1 /= r;
-
-							npos[0] = sin(pos0) * (bigr + r * cos(pos1));
-							npos[1] = cos(pos0) * (bigr + r * cos(pos1));
-							npos[2] = r * sin(pos1);
-
-							tormat2(pos0, pos1, mat1);
-							matflip2cpu(mat1, inv);
-							matact2(inv, x00, x01, x02, nvecn);
-							x00 = nvecn[0]; x01 = nvecn[1]; x02 = nvecn[2];
-							matact2(inv, x10, x11, x12, nvecn);
-							x10 = nvecn[0]; x11 = nvecn[1]; x12 = nvecn[2];
-							matact2(inv, x20, x21, x22, nvecn);
-							x20 = nvecn[0]; x21 = nvecn[1]; x22 = nvecn[2];
-
-							pos0 = npos[0];
-							pos1 = npos[1];
-							pos2 = npos[2];
-
-							pos0 += x00 * distrem;
-							pos1 += x01 * distrem;
-							pos2 += x02 * distrem;
-						}
+						x00 = tmpx00;
+						x01 = tmpx01;
+						x02 = tmpx02;
+						x10 = tmpx10;
+						x11 = tmpx11;
+						x12 = tmpx12;
+						x20 = tmpx20;
+						x21 = tmpx21;
+						x22 = tmpx22;
 					}
 				}
 				else
 				{
-					torcoll = toruscoll2(x00, pos0, x01, pos1, x02, pos2, r * r, bigr * bigr);
-					if (torcoll == 65536 || torcoll > speed)
+					if (blocks1[currx + nbx * curry + nbx * nby * currz])
 					{
-						pos0 += x00 * speed;
-						pos1 += x01 * speed;
-						pos2 += x02 * speed;
-					}
-					else
-					{
-						tor0 = pos0 + torcoll * x00;
-						tor1 = pos1 + torcoll * x01;
-						tor2 = pos2 + torcoll * x02;
-						xyvec = sqrt(tor0 * tor0 + tor1 * tor1);
+						inside = tmpinside;
+						other = tmpother;
 
-						theta = asin(tor2 / r);
-						if (xyvec < bigr) theta = M_PI - theta;
-						if (theta < 0) theta += 2.0 * M_PI;
+						pos0 = tmppos0;
+						pos1 = tmppos1;
+						pos2 = tmppos2;
 
-						phi = acos(tor1 / xyvec);
-						if (tor0 < 0) phi *= -1;
-						if (phi < 0) phi += 2.0 * M_PI;
-
-						tormat2(phi, theta, mat1);
-						matinv2(mat1, inv);
-						matflipcpu(inv, mat1);
-						matact2(mat1, x00, x01, x02, nvecn);
-						x00 = nvecn[0]; x01 = nvecn[1]; x02 = nvecn[2];
-						matact2(mat1, x10, x11, x12, nvecn);
-						x10 = nvecn[0]; x11 = nvecn[1]; x12 = nvecn[2];
-						matact2(mat1, x20, x21, x22, nvecn);
-						x20 = nvecn[0]; x21 = nvecn[1]; x22 = nvecn[2];
-
-						pos0 = phi * (bigr);
-						pos1 = theta * r;
-						pos2 = alpha;
-
-						inside = true;
-
-						distrem = speed - torcoll;
-
-						vl = sqrt(1 - x02 * x02);
-						geoang = atan(x02 / vl);
-
-						guder = asinh(tan(geoang));
-
-						newang = atan(sinh(guder - distrem));
-
-						proj0 = x00 / vl;
-						proj1 = x01 / vl;
-
-						rayon = pos2 / cos(geoang);
-						pos2 = rayon * cos(newang);
-
-
-						mat[0] = x00;
-						mat[3] = x01;
-						mat[6] = x02;
-
-						mat[1] = -sin(geoang) * proj0;
-						mat[4] = -sin(geoang) * proj1;
-						mat[7] = cos(geoang);
-
-						mat[2] = mat[3] * mat[7] - mat[6] * mat[4];
-						mat[5] = mat[6] * mat[1] - mat[0] * mat[7];
-						mat[8] = mat[0] * mat[4] - mat[3] * mat[1];
-
-						mat1[0] = cos(newang) * proj0;
-						mat1[3] = cos(newang) * proj1;
-						mat1[6] = sin(newang);
-
-						mat1[1] = -sin(newang) * proj0;
-						mat1[4] = -sin(newang) * proj1;
-						mat1[7] = cos(newang);
-
-						mat1[2] = mat[2];
-						mat1[5] = mat[5];
-						mat1[8] = mat[8];
-
-						matinv2(mat, inv);
-						matmult2(mat1, inv, mat);
-
-						x00 = mat1[0];
-						x01 = mat1[3];
-						x02 = mat1[6];
-
-						matact2(mat, x10, x11, x12, nvecn);
-						x10 = nvecn[0]; x11 = nvecn[1]; x12 = nvecn[2];
-						matact2(mat, x20, x21, x22, nvecn);
-						x20 = nvecn[0]; x21 = nvecn[1]; x22 = nvecn[2];
-
-						pos0 += rayon * (sin(geoang) - sin(newang)) * proj0;
-						pos1 += rayon * (sin(geoang) - sin(newang)) * proj1;
+						x00 = tmpx00;
+						x01 = tmpx01;
+						x02 = tmpx02;
+						x10 = tmpx10;
+						x11 = tmpx11;
+						x12 = tmpx12;
+						x20 = tmpx20;
+						x21 = tmpx21;
+						x22 = tmpx22;
 					}
 				}
 
-				if (inside)
-				{
-					pos0 = fmod(pos0, 2.0 * M_PI * bigr);
-					pos0 += signbit(pos0) * 2 * M_PI * bigr;
-
-					pos1 = fmod(pos1, 2.0 * M_PI * r);
-					pos1 += signbit(pos1) * 2.0 * M_PI * r;
-
-					currx = floor(pos0 * nbx / (2.0 * M_PI * bigr));
-					curry = floor(pos1 * nby / (2.0 * M_PI * r));
-					currz = floor((pos2 - alpha) * nbz / (beta - alpha));
-
-					if (other)
-					{
-						if (blocks2[currx + nbx * curry + nbx * nby * currz])
-						{
-							inside = tmpinside;
-							other = tmpother;
-
-							pos0 = tmppos0;
-							pos1 = tmppos1;
-							pos2 = tmppos2;
-
-							x00 = tmpx00;
-							x01 = tmpx01;
-							x02 = tmpx02;
-							x10 = tmpx10;
-							x11 = tmpx11;
-							x12 = tmpx12;
-							x20 = tmpx20;
-							x21 = tmpx21;
-							x22 = tmpx22;
-						}
-					}
-					else
-					{
-						if (blocks1[currx + nbx * curry + nbx * nby * currz])
-						{
-							inside = tmpinside;
-							other = tmpother;
-
-							pos0 = tmppos0;
-							pos1 = tmppos1;
-							pos2 = tmppos2;
-
-							x00 = tmpx00;
-							x01 = tmpx01;
-							x02 = tmpx02;
-							x10 = tmpx10;
-							x11 = tmpx11;
-							x12 = tmpx12;
-							x20 = tmpx20;
-							x21 = tmpx21;
-							x22 = tmpx22;
-						}
-					}
-
-				}
-
-
-
-				x00 = -x00;
-				x01 = -x01;
-				x02 = -x02;
-
-				newx00 = x00;
-				newx01 = x01;
-				newx02 = x02;
-
-				x00 = x10;
-				x01 = x11;
-				x02 = x12;
-
-				x10 = newx00;
-				x11 = newx01;
-				x12 = newx02;
 			}
 
-			if (sf::Keyboard::isKeyPressed(sf::Keyboard::S))
+
+			newx00 = x00;
+			newx01 = x01;
+			newx02 = x02;
+
+			x00 = x10;
+			x01 = x11;
+			x02 = x12;
+
+			x10 = newx00;
+			x11 = newx01;
+			x12 = newx02;
+		}
+
+		if (sf::Keyboard::isKeyPressed(sf::Keyboard::A))
+		{
+			newx00 = x00;
+			newx01 = x01;
+			newx02 = x02;
+
+			x00 = x10;
+			x01 = x11;
+			x02 = x12;
+
+			x10 = newx00;
+			x11 = newx01;
+			x12 = newx02;
+
+			x00 = -x00;
+			x01 = -x01;
+			x02 = -x02;
+
+			tmpinside = inside;
+			tmpother = other;
+
+			tmppos0 = pos0;
+			tmppos1 = pos1;
+			tmppos2 = pos2;
+
+			tmpx00 = x00;
+			tmpx01 = x01;
+			tmpx02 = x02;
+			tmpx10 = x10;
+			tmpx11 = x11;
+			tmpx12 = x12;
+			tmpx20 = x20;
+			tmpx21 = x21;
+			tmpx22 = x22;
+
+			if (inside)
 			{
-				x00 = -x00;
-				x01 = -x01;
-				x02 = -x02;
+				vl = sqrt(1.0 - x02 * x02);
+				geoang = atan(x02 / vl);
 
-				tmpinside = inside;
-				tmpother = other;
+				guder = asinh(tan(geoang));
 
-				tmppos0 = pos0;
-				tmppos1 = pos1;
-				tmppos2 = pos2;
+				newang = atan(sinh(guder - speed));
 
-				tmpx00 = x00;
-				tmpx01 = x01;
-				tmpx02 = x02;
-				tmpx10 = x10;
-				tmpx11 = x11;
-				tmpx12 = x12;
-				tmpx20 = x20;
-				tmpx21 = x21;
-				tmpx22 = x22;
+				proj0 = x00 / vl;
+				proj1 = x01 / vl;
 
-				if (inside)
+				rayon = pos2 / cos(geoang);
+				pos2 = rayon * cos(newang);
+
+				if (pos2 > beta)
 				{
+					newang = acos(beta / rayon);
+					distrem = speed - guder + asinh(tan(newang));
+
+					other = !other;
+
+					mat[0] = x00;
+					mat[3] = x01;
+					mat[6] = x02;
+
+					mat[1] = -sin(geoang) * proj0;
+					mat[4] = -sin(geoang) * proj1;
+					mat[7] = cos(geoang);
+
+					mat[2] = mat[3] * mat[7] - mat[6] * mat[4];
+					mat[5] = mat[6] * mat[1] - mat[0] * mat[7];
+					mat[8] = mat[0] * mat[4] - mat[3] * mat[1];
+
+					mat1[0] = cos(newang) * proj0;
+					mat1[3] = cos(newang) * proj1;
+					mat1[6] = sin(newang);
+
+					mat1[1] = -sin(newang) * proj0;
+					mat1[4] = -sin(newang) * proj1;
+					mat1[7] = cos(newang);
+
+					mat1[2] = mat[2];
+					mat1[5] = mat[5];
+					mat1[8] = mat[8];
+
+					matinv2(mat, inv);
+					matmult2(mat1, inv, mat);
+
+					x00 = mat1[0];
+					x01 = mat1[3];
+					x02 = -mat1[6];
+
+					matact2(mat, x10, x11, x12, nvecn);
+					x10 = nvecn[0]; x11 = nvecn[1]; x12 = -nvecn[2];
+					matact2(mat, x20, x21, x22, nvecn);
+					x20 = nvecn[0]; x21 = nvecn[1]; x22 = -nvecn[2];
+
+					pos0 += rayon * (sin(geoang) - sin(newang)) * proj0;
+					pos1 += rayon * (sin(geoang) - sin(newang)) * proj1;
+
+					////////////////////////////////////////
+
 					vl = sqrt(1.0 - x02 * x02);
 					geoang = atan(x02 / vl);
 
 					guder = asinh(tan(geoang));
 
-					newang = atan(sinh(guder - speed));
+					newang = atan(sinh(guder - distrem));
+
+					proj0 = x00 / vl;
+					proj1 = x01 / vl;
+
+					pos2 = rayon * cos(newang);
+
+					mat[0] = x00;
+					mat[3] = x01;
+					mat[6] = x02;
+
+					mat[1] = -sin(geoang) * proj0;
+					mat[4] = -sin(geoang) * proj1;
+					mat[7] = cos(geoang);
+
+					mat[2] = mat[3] * mat[7] - mat[6] * mat[4];
+					mat[5] = mat[6] * mat[1] - mat[0] * mat[7];
+					mat[8] = mat[0] * mat[4] - mat[3] * mat[1];
+
+					mat1[0] = cos(newang) * proj0;
+					mat1[3] = cos(newang) * proj1;
+					mat1[6] = sin(newang);
+
+					mat1[1] = -sin(newang) * proj0;
+					mat1[4] = -sin(newang) * proj1;
+					mat1[7] = cos(newang);
+
+					mat1[2] = mat[2];
+					mat1[5] = mat[5];
+					mat1[8] = mat[8];
+
+					matinv2(mat, inv);
+					matmult2(mat1, inv, mat);
+
+					x00 = mat1[0];
+					x01 = mat1[3];
+					x02 = mat1[6];
+
+					matact2(mat, x10, x11, x12, nvecn);
+					x10 = nvecn[0]; x11 = nvecn[1]; x12 = nvecn[2];
+					matact2(mat, x20, x21, x22, nvecn);
+					x20 = nvecn[0]; x21 = nvecn[1]; x22 = nvecn[2];
+
+					pos0 += rayon * (sin(geoang) - sin(newang)) * proj0;
+					pos1 += rayon * (sin(geoang) - sin(newang)) * proj1;
+
+					////////////////////////////////////////
+				}
+				else
+				{
+					if (pos2 < alpha)
+					{
+						inside = false;
+						newang = -acos(alpha / rayon);
+						distrem = speed - guder + asinh(tan(newang));
+					}
+
+
+					mat[0] = x00;
+					mat[3] = x01;
+					mat[6] = x02;
+
+					mat[1] = -sin(geoang) * proj0;
+					mat[4] = -sin(geoang) * proj1;
+					mat[7] = cos(geoang);
+
+					mat[2] = mat[3] * mat[7] - mat[6] * mat[4];
+					mat[5] = mat[6] * mat[1] - mat[0] * mat[7];
+					mat[8] = mat[0] * mat[4] - mat[3] * mat[1];
+
+					mat1[0] = cos(newang) * proj0;
+					mat1[3] = cos(newang) * proj1;
+					mat1[6] = sin(newang);
+
+					mat1[1] = -sin(newang) * proj0;
+					mat1[4] = -sin(newang) * proj1;
+					mat1[7] = cos(newang);
+
+					mat1[2] = mat[2];
+					mat1[5] = mat[5];
+					mat1[8] = mat[8];
+
+					matinv2(mat, inv);
+					matmult2(mat1, inv, mat);
+
+					x00 = mat1[0];
+					x01 = mat1[3];
+					x02 = mat1[6];
+
+					matact2(mat, x10, x11, x12, nvecn);
+					x10 = nvecn[0]; x11 = nvecn[1]; x12 = nvecn[2];
+					matact2(mat, x20, x21, x22, nvecn);
+					x20 = nvecn[0]; x21 = nvecn[1]; x22 = nvecn[2];
+
+					pos0 += rayon * (sin(geoang) - sin(newang)) * proj0;
+					pos1 += rayon * (sin(geoang) - sin(newang)) * proj1;
+
+					if (!inside)
+					{
+						pos0 /= bigr;
+						pos1 /= r;
+
+						npos[0] = sin(pos0) * (bigr + r * cos(pos1));
+						npos[1] = cos(pos0) * (bigr + r * cos(pos1));
+						npos[2] = r * sin(pos1);
+
+						tormat2(pos0, pos1, mat1);
+						matflip2cpu(mat1, inv);
+						matact2(inv, x00, x01, x02, nvecn);
+						x00 = nvecn[0]; x01 = nvecn[1]; x02 = nvecn[2];
+						matact2(inv, x10, x11, x12, nvecn);
+						x10 = nvecn[0]; x11 = nvecn[1]; x12 = nvecn[2];
+						matact2(inv, x20, x21, x22, nvecn);
+						x20 = nvecn[0]; x21 = nvecn[1]; x22 = nvecn[2];
+
+						pos0 = npos[0];
+						pos1 = npos[1];
+						pos2 = npos[2];
+
+						pos0 += x00 * distrem;
+						pos1 += x01 * distrem;
+						pos2 += x02 * distrem;
+					}
+				}
+			}
+			else
+			{
+				torcoll = toruscoll2(x00, pos0, x01, pos1, x02, pos2, r * r, bigr * bigr);
+				if (torcoll == 65536 || torcoll > speed)
+				{
+					pos0 += x00 * speed;
+					pos1 += x01 * speed;
+					pos2 += x02 * speed;
+				}
+				else
+				{
+					tor0 = pos0 + torcoll * x00;
+					tor1 = pos1 + torcoll * x01;
+					tor2 = pos2 + torcoll * x02;
+					xyvec = sqrt(tor0 * tor0 + tor1 * tor1);
+
+					theta = asin(tor2 / r);
+					if (xyvec < bigr) theta = M_PI - theta;
+					if (theta < 0) theta += 2.0 * M_PI;
+
+					phi = acos(tor1 / xyvec);
+					if (tor0 < 0) phi *= -1;
+					if (phi < 0) phi += 2.0 * M_PI;
+
+					tormat2(phi, theta, mat1);
+					matinv2(mat1, inv);
+					matflipcpu(inv, mat1);
+					matact2(mat1, x00, x01, x02, nvecn);
+					x00 = nvecn[0]; x01 = nvecn[1]; x02 = nvecn[2];
+					matact2(mat1, x10, x11, x12, nvecn);
+					x10 = nvecn[0]; x11 = nvecn[1]; x12 = nvecn[2];
+					matact2(mat1, x20, x21, x22, nvecn);
+					x20 = nvecn[0]; x21 = nvecn[1]; x22 = nvecn[2];
+
+					pos0 = phi * (bigr);
+					pos1 = theta * r;
+					pos2 = alpha;
+
+					inside = true;
+
+					distrem = speed - torcoll;
+
+					vl = sqrt(1 - x02 * x02);
+					geoang = atan(x02 / vl);
+
+					guder = asinh(tan(geoang));
+
+					newang = atan(sinh(guder - distrem));
 
 					proj0 = x00 / vl;
 					proj1 = x01 / vl;
@@ -1497,350 +1533,508 @@ int main()
 					rayon = pos2 / cos(geoang);
 					pos2 = rayon * cos(newang);
 
-					if (pos2 > beta)
+
+					mat[0] = x00;
+					mat[3] = x01;
+					mat[6] = x02;
+
+					mat[1] = -sin(geoang) * proj0;
+					mat[4] = -sin(geoang) * proj1;
+					mat[7] = cos(geoang);
+
+					mat[2] = mat[3] * mat[7] - mat[6] * mat[4];
+					mat[5] = mat[6] * mat[1] - mat[0] * mat[7];
+					mat[8] = mat[0] * mat[4] - mat[3] * mat[1];
+
+					mat1[0] = cos(newang) * proj0;
+					mat1[3] = cos(newang) * proj1;
+					mat1[6] = sin(newang);
+
+					mat1[1] = -sin(newang) * proj0;
+					mat1[4] = -sin(newang) * proj1;
+					mat1[7] = cos(newang);
+
+					mat1[2] = mat[2];
+					mat1[5] = mat[5];
+					mat1[8] = mat[8];
+
+					matinv2(mat, inv);
+					matmult2(mat1, inv, mat);
+
+					x00 = mat1[0];
+					x01 = mat1[3];
+					x02 = mat1[6];
+
+					matact2(mat, x10, x11, x12, nvecn);
+					x10 = nvecn[0]; x11 = nvecn[1]; x12 = nvecn[2];
+					matact2(mat, x20, x21, x22, nvecn);
+					x20 = nvecn[0]; x21 = nvecn[1]; x22 = nvecn[2];
+
+					pos0 += rayon * (sin(geoang) - sin(newang)) * proj0;
+					pos1 += rayon * (sin(geoang) - sin(newang)) * proj1;
+				}
+			}
+
+			if (inside)
+			{
+				pos0 = fmod(pos0, 2.0 * M_PI * bigr);
+				pos0 += signbit(pos0) * 2 * M_PI * bigr;
+
+				pos1 = fmod(pos1, 2.0 * M_PI * r);
+				pos1 += signbit(pos1) * 2.0 * M_PI * r;
+
+				currx = floor(pos0 * nbx / (2.0 * M_PI * bigr));
+				curry = floor(pos1 * nby / (2.0 * M_PI * r));
+				currz = floor((pos2 - alpha) * nbz / (beta - alpha));
+
+				if (other)
+				{
+					if (blocks2[currx + nbx * curry + nbx * nby * currz])
 					{
-						newang = acos(beta / rayon);
-						distrem = speed - guder + asinh(tan(newang));
+						inside = tmpinside;
+						other = tmpother;
 
-						other = !other;
+						pos0 = tmppos0;
+						pos1 = tmppos1;
+						pos2 = tmppos2;
 
-						mat[0] = x00;
-						mat[3] = x01;
-						mat[6] = x02;
-
-						mat[1] = -sin(geoang) * proj0;
-						mat[4] = -sin(geoang) * proj1;
-						mat[7] = cos(geoang);
-
-						mat[2] = mat[3] * mat[7] - mat[6] * mat[4];
-						mat[5] = mat[6] * mat[1] - mat[0] * mat[7];
-						mat[8] = mat[0] * mat[4] - mat[3] * mat[1];
-
-						mat1[0] = cos(newang) * proj0;
-						mat1[3] = cos(newang) * proj1;
-						mat1[6] = sin(newang);
-
-						mat1[1] = -sin(newang) * proj0;
-						mat1[4] = -sin(newang) * proj1;
-						mat1[7] = cos(newang);
-
-						mat1[2] = mat[2];
-						mat1[5] = mat[5];
-						mat1[8] = mat[8];
-
-						matinv2(mat, inv);
-						matmult2(mat1, inv, mat);
-
-						x00 = mat1[0];
-						x01 = mat1[3];
-						x02 = -mat1[6];
-
-						matact2(mat, x10, x11, x12, nvecn);
-						x10 = nvecn[0]; x11 = nvecn[1]; x12 = -nvecn[2];
-						matact2(mat, x20, x21, x22, nvecn);
-						x20 = nvecn[0]; x21 = nvecn[1]; x22 = -nvecn[2];
-
-						pos0 += rayon * (sin(geoang) - sin(newang)) * proj0;
-						pos1 += rayon * (sin(geoang) - sin(newang)) * proj1;
-
-						////////////////////////////////////////
-
-						vl = sqrt(1.0 - x02 * x02);
-						geoang = atan(x02 / vl);
-
-						guder = asinh(tan(geoang));
-
-						newang = atan(sinh(guder - distrem));
-
-						proj0 = x00 / vl;
-						proj1 = x01 / vl;
-
-						pos2 = rayon * cos(newang);
-
-						mat[0] = x00;
-						mat[3] = x01;
-						mat[6] = x02;
-
-						mat[1] = -sin(geoang) * proj0;
-						mat[4] = -sin(geoang) * proj1;
-						mat[7] = cos(geoang);
-
-						mat[2] = mat[3] * mat[7] - mat[6] * mat[4];
-						mat[5] = mat[6] * mat[1] - mat[0] * mat[7];
-						mat[8] = mat[0] * mat[4] - mat[3] * mat[1];
-
-						mat1[0] = cos(newang) * proj0;
-						mat1[3] = cos(newang) * proj1;
-						mat1[6] = sin(newang);
-
-						mat1[1] = -sin(newang) * proj0;
-						mat1[4] = -sin(newang) * proj1;
-						mat1[7] = cos(newang);
-
-						mat1[2] = mat[2];
-						mat1[5] = mat[5];
-						mat1[8] = mat[8];
-
-						matinv2(mat, inv);
-						matmult2(mat1, inv, mat);
-
-						x00 = mat1[0];
-						x01 = mat1[3];
-						x02 = mat1[6];
-
-						matact2(mat, x10, x11, x12, nvecn);
-						x10 = nvecn[0]; x11 = nvecn[1]; x12 = nvecn[2];
-						matact2(mat, x20, x21, x22, nvecn);
-						x20 = nvecn[0]; x21 = nvecn[1]; x22 = nvecn[2];
-
-						pos0 += rayon * (sin(geoang) - sin(newang)) * proj0;
-						pos1 += rayon * (sin(geoang) - sin(newang)) * proj1;
-
-						////////////////////////////////////////
-					}
-					else
-					{
-						if (pos2 < alpha)
-						{
-							inside = false;
-							newang = -acos(alpha / rayon);
-							distrem = speed - guder + asinh(tan(newang));
-						}
-
-
-						mat[0] = x00;
-						mat[3] = x01;
-						mat[6] = x02;
-
-						mat[1] = -sin(geoang) * proj0;
-						mat[4] = -sin(geoang) * proj1;
-						mat[7] = cos(geoang);
-
-						mat[2] = mat[3] * mat[7] - mat[6] * mat[4];
-						mat[5] = mat[6] * mat[1] - mat[0] * mat[7];
-						mat[8] = mat[0] * mat[4] - mat[3] * mat[1];
-
-						mat1[0] = cos(newang) * proj0;
-						mat1[3] = cos(newang) * proj1;
-						mat1[6] = sin(newang);
-
-						mat1[1] = -sin(newang) * proj0;
-						mat1[4] = -sin(newang) * proj1;
-						mat1[7] = cos(newang);
-
-						mat1[2] = mat[2];
-						mat1[5] = mat[5];
-						mat1[8] = mat[8];
-
-						matinv2(mat, inv);
-						matmult2(mat1, inv, mat);
-
-						x00 = mat1[0];
-						x01 = mat1[3];
-						x02 = mat1[6];
-
-						matact2(mat, x10, x11, x12, nvecn);
-						x10 = nvecn[0]; x11 = nvecn[1]; x12 = nvecn[2];
-						matact2(mat, x20, x21, x22, nvecn);
-						x20 = nvecn[0]; x21 = nvecn[1]; x22 = nvecn[2];
-
-						pos0 += rayon * (sin(geoang) - sin(newang)) * proj0;
-						pos1 += rayon * (sin(geoang) - sin(newang)) * proj1;
-
-						if (!inside)
-						{
-							pos0 /= bigr;
-							pos1 /= r;
-
-							npos[0] = sin(pos0) * (bigr + r * cos(pos1));
-							npos[1] = cos(pos0) * (bigr + r * cos(pos1));
-							npos[2] = r * sin(pos1);
-
-							tormat2(pos0, pos1, mat1);
-							matflip2cpu(mat1, inv);
-							matact2(inv, x00, x01, x02, nvecn);
-							x00 = nvecn[0]; x01 = nvecn[1]; x02 = nvecn[2];
-							matact2(inv, x10, x11, x12, nvecn);
-							x10 = nvecn[0]; x11 = nvecn[1]; x12 = nvecn[2];
-							matact2(inv, x20, x21, x22, nvecn);
-							x20 = nvecn[0]; x21 = nvecn[1]; x22 = nvecn[2];
-
-							pos0 = npos[0];
-							pos1 = npos[1];
-							pos2 = npos[2];
-
-							pos0 += x00 * distrem;
-							pos1 += x01 * distrem;
-							pos2 += x02 * distrem;
-						}
+						x00 = tmpx00;
+						x01 = tmpx01;
+						x02 = tmpx02;
+						x10 = tmpx10;
+						x11 = tmpx11;
+						x12 = tmpx12;
+						x20 = tmpx20;
+						x21 = tmpx21;
+						x22 = tmpx22;
 					}
 				}
 				else
 				{
-					torcoll = toruscoll2(x00, pos0, x01, pos1, x02, pos2, r * r, bigr * bigr);
-					if (torcoll == 65536 || torcoll > speed)
+					if (blocks1[currx + nbx * curry + nbx * nby * currz])
 					{
-						pos0 += x00 * speed;
-						pos1 += x01 * speed;
-						pos2 += x02 * speed;
-					}
-					else
-					{
-						tor0 = pos0 + torcoll * x00;
-						tor1 = pos1 + torcoll * x01;
-						tor2 = pos2 + torcoll * x02;
-						xyvec = sqrt(tor0 * tor0 + tor1 * tor1);
+						inside = tmpinside;
+						other = tmpother;
 
-						theta = asin(tor2 / r);
-						if (xyvec < bigr) theta = M_PI - theta;
-						if (theta < 0) theta += 2.0 * M_PI;
+						pos0 = tmppos0;
+						pos1 = tmppos1;
+						pos2 = tmppos2;
 
-						phi = acos(tor1 / xyvec);
-						if (tor0 < 0) phi *= -1;
-						if (phi < 0) phi += 2.0 * M_PI;
-
-						tormat2(phi, theta, mat1);
-						matinv2(mat1, inv);
-						matflipcpu(inv, mat1);
-						matact2(mat1, x00, x01, x02, nvecn);
-						x00 = nvecn[0]; x01 = nvecn[1]; x02 = nvecn[2];
-						matact2(mat1, x10, x11, x12, nvecn);
-						x10 = nvecn[0]; x11 = nvecn[1]; x12 = nvecn[2];
-						matact2(mat1, x20, x21, x22, nvecn);
-						x20 = nvecn[0]; x21 = nvecn[1]; x22 = nvecn[2];
-
-						pos0 = phi * (bigr);
-						pos1 = theta * r;
-						pos2 = alpha;
-
-						inside = true;
-
-						distrem = speed - torcoll;
-
-						vl = sqrt(1 - x02 * x02);
-						geoang = atan(x02 / vl);
-
-						guder = asinh(tan(geoang));
-
-						newang = atan(sinh(guder - distrem));
-
-						proj0 = x00 / vl;
-						proj1 = x01 / vl;
-
-						rayon = pos2 / cos(geoang);
-						pos2 = rayon * cos(newang);
-
-
-						mat[0] = x00;
-						mat[3] = x01;
-						mat[6] = x02;
-
-						mat[1] = -sin(geoang) * proj0;
-						mat[4] = -sin(geoang) * proj1;
-						mat[7] = cos(geoang);
-
-						mat[2] = mat[3] * mat[7] - mat[6] * mat[4];
-						mat[5] = mat[6] * mat[1] - mat[0] * mat[7];
-						mat[8] = mat[0] * mat[4] - mat[3] * mat[1];
-
-						mat1[0] = cos(newang) * proj0;
-						mat1[3] = cos(newang) * proj1;
-						mat1[6] = sin(newang);
-
-						mat1[1] = -sin(newang) * proj0;
-						mat1[4] = -sin(newang) * proj1;
-						mat1[7] = cos(newang);
-
-						mat1[2] = mat[2];
-						mat1[5] = mat[5];
-						mat1[8] = mat[8];
-
-						matinv2(mat, inv);
-						matmult2(mat1, inv, mat);
-
-						x00 = mat1[0];
-						x01 = mat1[3];
-						x02 = mat1[6];
-
-						matact2(mat, x10, x11, x12, nvecn);
-						x10 = nvecn[0]; x11 = nvecn[1]; x12 = nvecn[2];
-						matact2(mat, x20, x21, x22, nvecn);
-						x20 = nvecn[0]; x21 = nvecn[1]; x22 = nvecn[2];
-
-						pos0 += rayon * (sin(geoang) - sin(newang)) * proj0;
-						pos1 += rayon * (sin(geoang) - sin(newang)) * proj1;
+						x00 = tmpx00;
+						x01 = tmpx01;
+						x02 = tmpx02;
+						x10 = tmpx10;
+						x11 = tmpx11;
+						x12 = tmpx12;
+						x20 = tmpx20;
+						x21 = tmpx21;
+						x22 = tmpx22;
 					}
 				}
 
-				if (inside)
-				{
-					pos0 = fmod(pos0, 2.0 * M_PI * bigr);
-					pos0 += signbit(pos0) * 2 * M_PI * bigr;
-
-					pos1 = fmod(pos1, 2.0 * M_PI * r);
-					pos1 += signbit(pos1) * 2.0 * M_PI * r;
-
-					currx = floor(pos0 * nbx / (2.0 * M_PI * bigr));
-					curry = floor(pos1 * nby / (2.0 * M_PI * r));
-					currz = floor((pos2 - alpha) * nbz / (beta - alpha));
-
-					if (other)
-					{
-						if (blocks2[currx + nbx * curry + nbx * nby * currz])
-						{
-							inside = tmpinside;
-							other = tmpother;
-
-							pos0 = tmppos0;
-							pos1 = tmppos1;
-							pos2 = tmppos2;
-
-							x00 = tmpx00;
-							x01 = tmpx01;
-							x02 = tmpx02;
-							x10 = tmpx10;
-							x11 = tmpx11;
-							x12 = tmpx12;
-							x20 = tmpx20;
-							x21 = tmpx21;
-							x22 = tmpx22;
-						}
-					}
-					else
-					{
-						if (blocks1[currx + nbx * curry + nbx * nby * currz])
-						{
-							inside = tmpinside;
-							other = tmpother;
-
-							pos0 = tmppos0;
-							pos1 = tmppos1;
-							pos2 = tmppos2;
-
-							x00 = tmpx00;
-							x01 = tmpx01;
-							x02 = tmpx02;
-							x10 = tmpx10;
-							x11 = tmpx11;
-							x12 = tmpx12;
-							x20 = tmpx20;
-							x21 = tmpx21;
-							x22 = tmpx22;
-						}
-					}
-
-				}
-
-
-				x00 = -x00;
-				x01 = -x01;
-				x02 = -x02;
 			}
 
-        
 
-        if (focus)
-        {
+
+			x00 = -x00;
+			x01 = -x01;
+			x02 = -x02;
+
+			newx00 = x00;
+			newx01 = x01;
+			newx02 = x02;
+
+			x00 = x10;
+			x01 = x11;
+			x02 = x12;
+
+			x10 = newx00;
+			x11 = newx01;
+			x12 = newx02;
+		}
+
+		if (sf::Keyboard::isKeyPressed(sf::Keyboard::S))
+		{
+			x00 = -x00;
+			x01 = -x01;
+			x02 = -x02;
+
+			tmpinside = inside;
+			tmpother = other;
+
+			tmppos0 = pos0;
+			tmppos1 = pos1;
+			tmppos2 = pos2;
+
+			tmpx00 = x00;
+			tmpx01 = x01;
+			tmpx02 = x02;
+			tmpx10 = x10;
+			tmpx11 = x11;
+			tmpx12 = x12;
+			tmpx20 = x20;
+			tmpx21 = x21;
+			tmpx22 = x22;
+
+			if (inside)
+			{
+				vl = sqrt(1.0 - x02 * x02);
+				geoang = atan(x02 / vl);
+
+				guder = asinh(tan(geoang));
+
+				newang = atan(sinh(guder - speed));
+
+				proj0 = x00 / vl;
+				proj1 = x01 / vl;
+
+				rayon = pos2 / cos(geoang);
+				pos2 = rayon * cos(newang);
+
+				if (pos2 > beta)
+				{
+					newang = acos(beta / rayon);
+					distrem = speed - guder + asinh(tan(newang));
+
+					other = !other;
+
+					mat[0] = x00;
+					mat[3] = x01;
+					mat[6] = x02;
+
+					mat[1] = -sin(geoang) * proj0;
+					mat[4] = -sin(geoang) * proj1;
+					mat[7] = cos(geoang);
+
+					mat[2] = mat[3] * mat[7] - mat[6] * mat[4];
+					mat[5] = mat[6] * mat[1] - mat[0] * mat[7];
+					mat[8] = mat[0] * mat[4] - mat[3] * mat[1];
+
+					mat1[0] = cos(newang) * proj0;
+					mat1[3] = cos(newang) * proj1;
+					mat1[6] = sin(newang);
+
+					mat1[1] = -sin(newang) * proj0;
+					mat1[4] = -sin(newang) * proj1;
+					mat1[7] = cos(newang);
+
+					mat1[2] = mat[2];
+					mat1[5] = mat[5];
+					mat1[8] = mat[8];
+
+					matinv2(mat, inv);
+					matmult2(mat1, inv, mat);
+
+					x00 = mat1[0];
+					x01 = mat1[3];
+					x02 = -mat1[6];
+
+					matact2(mat, x10, x11, x12, nvecn);
+					x10 = nvecn[0]; x11 = nvecn[1]; x12 = -nvecn[2];
+					matact2(mat, x20, x21, x22, nvecn);
+					x20 = nvecn[0]; x21 = nvecn[1]; x22 = -nvecn[2];
+
+					pos0 += rayon * (sin(geoang) - sin(newang)) * proj0;
+					pos1 += rayon * (sin(geoang) - sin(newang)) * proj1;
+
+					////////////////////////////////////////
+
+					vl = sqrt(1.0 - x02 * x02);
+					geoang = atan(x02 / vl);
+
+					guder = asinh(tan(geoang));
+
+					newang = atan(sinh(guder - distrem));
+
+					proj0 = x00 / vl;
+					proj1 = x01 / vl;
+
+					pos2 = rayon * cos(newang);
+
+					mat[0] = x00;
+					mat[3] = x01;
+					mat[6] = x02;
+
+					mat[1] = -sin(geoang) * proj0;
+					mat[4] = -sin(geoang) * proj1;
+					mat[7] = cos(geoang);
+
+					mat[2] = mat[3] * mat[7] - mat[6] * mat[4];
+					mat[5] = mat[6] * mat[1] - mat[0] * mat[7];
+					mat[8] = mat[0] * mat[4] - mat[3] * mat[1];
+
+					mat1[0] = cos(newang) * proj0;
+					mat1[3] = cos(newang) * proj1;
+					mat1[6] = sin(newang);
+
+					mat1[1] = -sin(newang) * proj0;
+					mat1[4] = -sin(newang) * proj1;
+					mat1[7] = cos(newang);
+
+					mat1[2] = mat[2];
+					mat1[5] = mat[5];
+					mat1[8] = mat[8];
+
+					matinv2(mat, inv);
+					matmult2(mat1, inv, mat);
+
+					x00 = mat1[0];
+					x01 = mat1[3];
+					x02 = mat1[6];
+
+					matact2(mat, x10, x11, x12, nvecn);
+					x10 = nvecn[0]; x11 = nvecn[1]; x12 = nvecn[2];
+					matact2(mat, x20, x21, x22, nvecn);
+					x20 = nvecn[0]; x21 = nvecn[1]; x22 = nvecn[2];
+
+					pos0 += rayon * (sin(geoang) - sin(newang)) * proj0;
+					pos1 += rayon * (sin(geoang) - sin(newang)) * proj1;
+
+					////////////////////////////////////////
+				}
+				else
+				{
+					if (pos2 < alpha)
+					{
+						inside = false;
+						newang = -acos(alpha / rayon);
+						distrem = speed - guder + asinh(tan(newang));
+					}
+
+
+					mat[0] = x00;
+					mat[3] = x01;
+					mat[6] = x02;
+
+					mat[1] = -sin(geoang) * proj0;
+					mat[4] = -sin(geoang) * proj1;
+					mat[7] = cos(geoang);
+
+					mat[2] = mat[3] * mat[7] - mat[6] * mat[4];
+					mat[5] = mat[6] * mat[1] - mat[0] * mat[7];
+					mat[8] = mat[0] * mat[4] - mat[3] * mat[1];
+
+					mat1[0] = cos(newang) * proj0;
+					mat1[3] = cos(newang) * proj1;
+					mat1[6] = sin(newang);
+
+					mat1[1] = -sin(newang) * proj0;
+					mat1[4] = -sin(newang) * proj1;
+					mat1[7] = cos(newang);
+
+					mat1[2] = mat[2];
+					mat1[5] = mat[5];
+					mat1[8] = mat[8];
+
+					matinv2(mat, inv);
+					matmult2(mat1, inv, mat);
+
+					x00 = mat1[0];
+					x01 = mat1[3];
+					x02 = mat1[6];
+
+					matact2(mat, x10, x11, x12, nvecn);
+					x10 = nvecn[0]; x11 = nvecn[1]; x12 = nvecn[2];
+					matact2(mat, x20, x21, x22, nvecn);
+					x20 = nvecn[0]; x21 = nvecn[1]; x22 = nvecn[2];
+
+					pos0 += rayon * (sin(geoang) - sin(newang)) * proj0;
+					pos1 += rayon * (sin(geoang) - sin(newang)) * proj1;
+
+					if (!inside)
+					{
+						pos0 /= bigr;
+						pos1 /= r;
+
+						npos[0] = sin(pos0) * (bigr + r * cos(pos1));
+						npos[1] = cos(pos0) * (bigr + r * cos(pos1));
+						npos[2] = r * sin(pos1);
+
+						tormat2(pos0, pos1, mat1);
+						matflip2cpu(mat1, inv);
+						matact2(inv, x00, x01, x02, nvecn);
+						x00 = nvecn[0]; x01 = nvecn[1]; x02 = nvecn[2];
+						matact2(inv, x10, x11, x12, nvecn);
+						x10 = nvecn[0]; x11 = nvecn[1]; x12 = nvecn[2];
+						matact2(inv, x20, x21, x22, nvecn);
+						x20 = nvecn[0]; x21 = nvecn[1]; x22 = nvecn[2];
+
+						pos0 = npos[0];
+						pos1 = npos[1];
+						pos2 = npos[2];
+
+						pos0 += x00 * distrem;
+						pos1 += x01 * distrem;
+						pos2 += x02 * distrem;
+					}
+				}
+			}
+			else
+			{
+				torcoll = toruscoll2(x00, pos0, x01, pos1, x02, pos2, r * r, bigr * bigr);
+				if (torcoll == 65536 || torcoll > speed)
+				{
+					pos0 += x00 * speed;
+					pos1 += x01 * speed;
+					pos2 += x02 * speed;
+				}
+				else
+				{
+					tor0 = pos0 + torcoll * x00;
+					tor1 = pos1 + torcoll * x01;
+					tor2 = pos2 + torcoll * x02;
+					xyvec = sqrt(tor0 * tor0 + tor1 * tor1);
+
+					theta = asin(tor2 / r);
+					if (xyvec < bigr) theta = M_PI - theta;
+					if (theta < 0) theta += 2.0 * M_PI;
+
+					phi = acos(tor1 / xyvec);
+					if (tor0 < 0) phi *= -1;
+					if (phi < 0) phi += 2.0 * M_PI;
+
+					tormat2(phi, theta, mat1);
+					matinv2(mat1, inv);
+					matflipcpu(inv, mat1);
+					matact2(mat1, x00, x01, x02, nvecn);
+					x00 = nvecn[0]; x01 = nvecn[1]; x02 = nvecn[2];
+					matact2(mat1, x10, x11, x12, nvecn);
+					x10 = nvecn[0]; x11 = nvecn[1]; x12 = nvecn[2];
+					matact2(mat1, x20, x21, x22, nvecn);
+					x20 = nvecn[0]; x21 = nvecn[1]; x22 = nvecn[2];
+
+					pos0 = phi * (bigr);
+					pos1 = theta * r;
+					pos2 = alpha;
+
+					inside = true;
+
+					distrem = speed - torcoll;
+
+					vl = sqrt(1 - x02 * x02);
+					geoang = atan(x02 / vl);
+
+					guder = asinh(tan(geoang));
+
+					newang = atan(sinh(guder - distrem));
+
+					proj0 = x00 / vl;
+					proj1 = x01 / vl;
+
+					rayon = pos2 / cos(geoang);
+					pos2 = rayon * cos(newang);
+
+
+					mat[0] = x00;
+					mat[3] = x01;
+					mat[6] = x02;
+
+					mat[1] = -sin(geoang) * proj0;
+					mat[4] = -sin(geoang) * proj1;
+					mat[7] = cos(geoang);
+
+					mat[2] = mat[3] * mat[7] - mat[6] * mat[4];
+					mat[5] = mat[6] * mat[1] - mat[0] * mat[7];
+					mat[8] = mat[0] * mat[4] - mat[3] * mat[1];
+
+					mat1[0] = cos(newang) * proj0;
+					mat1[3] = cos(newang) * proj1;
+					mat1[6] = sin(newang);
+
+					mat1[1] = -sin(newang) * proj0;
+					mat1[4] = -sin(newang) * proj1;
+					mat1[7] = cos(newang);
+
+					mat1[2] = mat[2];
+					mat1[5] = mat[5];
+					mat1[8] = mat[8];
+
+					matinv2(mat, inv);
+					matmult2(mat1, inv, mat);
+
+					x00 = mat1[0];
+					x01 = mat1[3];
+					x02 = mat1[6];
+
+					matact2(mat, x10, x11, x12, nvecn);
+					x10 = nvecn[0]; x11 = nvecn[1]; x12 = nvecn[2];
+					matact2(mat, x20, x21, x22, nvecn);
+					x20 = nvecn[0]; x21 = nvecn[1]; x22 = nvecn[2];
+
+					pos0 += rayon * (sin(geoang) - sin(newang)) * proj0;
+					pos1 += rayon * (sin(geoang) - sin(newang)) * proj1;
+				}
+			}
+
+			if (inside)
+			{
+				pos0 = fmod(pos0, 2.0 * M_PI * bigr);
+				pos0 += signbit(pos0) * 2 * M_PI * bigr;
+
+				pos1 = fmod(pos1, 2.0 * M_PI * r);
+				pos1 += signbit(pos1) * 2.0 * M_PI * r;
+
+				currx = floor(pos0 * nbx / (2.0 * M_PI * bigr));
+				curry = floor(pos1 * nby / (2.0 * M_PI * r));
+				currz = floor((pos2 - alpha) * nbz / (beta - alpha));
+
+				if (other)
+				{
+					if (blocks2[currx + nbx * curry + nbx * nby * currz])
+					{
+						inside = tmpinside;
+						other = tmpother;
+
+						pos0 = tmppos0;
+						pos1 = tmppos1;
+						pos2 = tmppos2;
+
+						x00 = tmpx00;
+						x01 = tmpx01;
+						x02 = tmpx02;
+						x10 = tmpx10;
+						x11 = tmpx11;
+						x12 = tmpx12;
+						x20 = tmpx20;
+						x21 = tmpx21;
+						x22 = tmpx22;
+					}
+				}
+				else
+				{
+					if (blocks1[currx + nbx * curry + nbx * nby * currz])
+					{
+						inside = tmpinside;
+						other = tmpother;
+
+						pos0 = tmppos0;
+						pos1 = tmppos1;
+						pos2 = tmppos2;
+
+						x00 = tmpx00;
+						x01 = tmpx01;
+						x02 = tmpx02;
+						x10 = tmpx10;
+						x11 = tmpx11;
+						x12 = tmpx12;
+						x20 = tmpx20;
+						x21 = tmpx21;
+						x22 = tmpx22;
+					}
+				}
+
+			}
+
+
+			x00 = -x00;
+			x01 = -x01;
+			x02 = -x02;
+		}
+
+		dist = 2.0 + .5*alphaef4*sin(0.01*frame);
+
+		if (focus)
+		{
 			xl = sqrt(x00 * x00 + x01 * x01 + x02 * x02);
 			x00 /= xl;
 			x01 /= xl;
@@ -1874,71 +2068,125 @@ int main()
 			x21 /= xl;
 			x22 /= xl;
 
-            vec0 = dist * x00 + multy * x10 + multz * x20;
-            vec1 = dist * x01 + multy * x11 + multz * x21;
-            vec2 = dist * x02 + multy * x12 + multz * x22;
+			vec0 = dist * x00 + multy * x10 + multz * x20;
+			vec1 = dist * x01 + multy * x11 + multz * x21;
+			vec2 = dist * x02 + multy * x12 + multz * x22;
 
-            addy0 = sqsz * x10;
-            addy1 = sqsz * x11;
-            addy2 = sqsz * x12;
+			addy0 = sqsz * x10;
+			addy1 = sqsz * x11;
+			addy2 = sqsz * x12;
 
-            addz0 = -sqsz * x20;
-            addz1 = -sqsz * x21;
-            addz2 = -sqsz * x22;
+			addz0 = -sqsz * x20;
+			addz1 = -sqsz * x21;
+			addz2 = -sqsz * x22;
 
 			if (inside)
 			{
-				pos0 = fmod(pos0, 2.0*M_PI*bigr);
-				pos0 += signbit(pos0)* 2 * M_PI * bigr;
+				pos0 = fmod(pos0, 2.0 * M_PI * bigr);
+				pos0 += signbit(pos0) * 2 * M_PI * bigr;
 
 				pos1 = fmod(pos1, 2.0 * M_PI * r);
 				pos1 += signbit(pos1) * 2.0 * M_PI * r;
 
-				currx = floor(pos0*nbx/(2.0 * M_PI * bigr));
+				currx = floor(pos0 * nbx / (2.0 * M_PI * bigr));
 				curry = floor(pos1 * nby / (2.0 * M_PI * r));
-				currz= floor((pos2-alpha) * nbz  / (beta-alpha));
+				currz = floor((pos2 - alpha) * nbz / (beta - alpha));
 			}
-       
 
-            cudathingy(pixels, pos0, pos1, pos2, vec0, vec1, vec2, addy0, addy1, addy2, addz0, addz1, addz2, inside,alpha,beta,bigr,r,other, dx, dy, dz, currx, curry, currz, nbx, nby,nbz,blocks1,blocks2,rem,blockrand,reset);
+			if (aef)
+			{
+				efdur = frame - aeff;
+				if (efdur < 3600 * 1.5) alphaef = min(1.0, efdur / 3600.0);
+				else alphaef = min((-1.5 / 5400.0) * efdur + 3.0,1.0);
+				
+				if (efdur >= 3600 * 3)
+				{
+					aef = false;
+					alphaef = 0;
+				}
+			}
+			if (aef2)
+			{
+				efdur = frame - aeff2;
+				if (efdur < 3600 * 1.5) alphaef2 = min(1.0, efdur / 3600.0);
+				else alphaef2 = min((-1.5 / 5400.0) * efdur + 3.0, 1.0);
 
-			pixels[4 * (1920 * (1080/2) + (1920 / 2))] = 255;
+				if (efdur >= 3600 * 3)
+				{
+					aef2 = false;
+					alphaef2 = 0;
+				}
+			}
+			if (aef3)
+			{
+				efdur = frame - aeff3;
+				if (efdur < 3600 * 1.5) alphaef3 = min(1.0, efdur / 3600.0);
+				else alphaef3 = min((-1.5 / 5400.0) * efdur + 3.0, 1.0);
+
+				if (efdur >= 3600 * 3)
+				{
+					aef3 = false;
+					alphaef3 = 0;
+				}
+			}
+			if (aef4)
+			{
+				efdur = frame - aeff4;
+				if (efdur < 3600 * 1.5) alphaef4 = min(1.0, efdur / 3600.0);
+				else alphaef4 = min((-1.5 / 5400.0) * efdur + 3.0, 1.0);
+
+				if (efdur >= 3600 * 3)
+				{
+					aef4 = false;
+					alphaef4 = 0;
+				}
+			}
+
+			cudathingy(pixels, pos0, pos1, pos2, vec0, vec1, vec2, addy0, addy1, addy2, addz0, addz1, addz2, inside, alpha, beta, bigr, r, other, dx, dy, dz, currx, curry, currz, nbx, nby, nbz, blocks1, blocks2, rem, blockrand, reset,frame,add,load,alphaef,alphaef2,alphaef3,alphaef4);
+	
+
+			pixels[4 * (1920 * (1080 / 2) + (1920 / 2))] = 255;
 			pixels[4 * (1920 * (1080 / 2) + (1920 / 2)) + 1] = 255;
-			pixels[4 * (1920 * (1080 / 2) + (1920/2)) + 2] = 255;
+			pixels[4 * (1920 * (1080 / 2) + (1920 / 2)) + 2] = 255;
 
-			pixels[4 * (1920 * (1080 / 2+1) + (1920 / 2))] = 255;
-			pixels[4 * (1920 * (1080 / 2+1) + (1920 / 2)) + 1] = 255;
-			pixels[4 * (1920 * (1080 / 2+1) + (1920 / 2)) + 2] = 255;
+			pixels[4 * (1920 * (1080 / 2 + 1) + (1920 / 2))] = 255;
+			pixels[4 * (1920 * (1080 / 2 + 1) + (1920 / 2)) + 1] = 255;
+			pixels[4 * (1920 * (1080 / 2 + 1) + (1920 / 2)) + 2] = 255;
 
-			pixels[4 * (1920 * (1080 / 2-1) + (1920 / 2))] = 255;
-			pixels[4 * (1920 * (1080 / 2-1) + (1920 / 2)) + 1] = 255;
-			pixels[4 * (1920 * (1080 / 2-1) + (1920 / 2)) + 2] = 255;
+			pixels[4 * (1920 * (1080 / 2 - 1) + (1920 / 2))] = 255;
+			pixels[4 * (1920 * (1080 / 2 - 1) + (1920 / 2)) + 1] = 255;
+			pixels[4 * (1920 * (1080 / 2 - 1) + (1920 / 2)) + 2] = 255;
 
-			pixels[4 * (1920 * (1080 / 2) + (1920 / 2+1))] = 255;
-			pixels[4 * (1920 * (1080 / 2) + (1920 / 2+1)) + 1] = 255;
-			pixels[4 * (1920 * (1080 / 2) + (1920 / 2+1)) + 2] = 255;
+			pixels[4 * (1920 * (1080 / 2) + (1920 / 2 + 1))] = 255;
+			pixels[4 * (1920 * (1080 / 2) + (1920 / 2 + 1)) + 1] = 255;
+			pixels[4 * (1920 * (1080 / 2) + (1920 / 2 + 1)) + 2] = 255;
 
-			pixels[4 * (1920 * (1080 / 2) + (1920 / 2-1))] = 255;
-			pixels[4 * (1920 * (1080 / 2) + (1920 / 2-1)) + 1] = 255;
-			pixels[4 * (1920 * (1080 / 2) + (1920 / 2-1)) + 2] = 255;
+			pixels[4 * (1920 * (1080 / 2) + (1920 / 2 - 1))] = 255;
+			pixels[4 * (1920 * (1080 / 2) + (1920 / 2 - 1)) + 1] = 255;
+			pixels[4 * (1920 * (1080 / 2) + (1920 / 2 - 1)) + 2] = 255;
 
-            texture.update(pixels);
-            sprite.setTexture(texture);
-            window.draw(sprite);
-            window.display();
+			texture.update(pixels);
+			sprite.setTexture(texture);
+			window.draw(sprite);
+			window.display();
 
 			rem = false;
+			add = false;
 			blockrand = false;
 			reset = false;
-        }
-    }
+			load = false;
 
-    cudaExit();
-    return 0;
+			frame++;
+		}
+	}
+
+	cudaExit();
+	return 0;
 }
 
- double solvequartic2(double a0, double b0, double c0, double d0, double e0)
+double solvequartic2(double a0, double b0, double c0, double d0, double e0)
 {
+
 	double tmp;
 	double tmin = 65536.0;
 	double sint, s;
@@ -1982,6 +2230,9 @@ int main()
 
 	s = sqrt(sint) * 0.5;
 
+	//if (abs(s) < 0.000001) return 65536.0;
+
+
 	rootint = (sint + 2.0 * p) * (-1.0);
 	qds = q / s;
 
@@ -2007,10 +2258,17 @@ int main()
 		if (tmp - r1 > 0.0000001 && tmp - r1 < tmin) tmin = tmp - r1;
 	}
 
+	//double sol2, sol3, sol4;
+	//sol2 = tmin * tmin;
+	//sol3 = sol2 * tmin;
+	//sol4 = sol3 * tmin;
+
+	//if (abs(a0 * sol4 + b0 * sol3 + c0 * sol2 + d0 * tmin + e0) < 0.1 && tmin<10 && tmin>0.01) return tmin;
+	//else return 65536.0;
 	return tmin;
 }
 
- double toruscoll2(double a, double b, double c, double d, double e, double f, double m, double n)
+double toruscoll2(double a, double b, double c, double d, double e, double f, double m, double n)
 {
 	double t4, t3, t2, t1, t0;
 
@@ -2055,102 +2313,102 @@ int main()
 }
 
 
- void tormat2(double phi, double theta, double* mat)
- {
-	 mat[0] = cos(theta) * sin(phi);
-	 mat[3] = cos(theta) * cos(phi);
-	 mat[6] = sin(theta);
+void tormat2(double phi, double theta, double* mat)
+{
+	mat[0] = cos(theta) * sin(phi);
+	mat[3] = cos(theta) * cos(phi);
+	mat[6] = sin(theta);
 
-	 mat[2] = cos(phi);
-	 mat[5] = -sin(phi);
-	 mat[8] = 0;
+	mat[2] = cos(phi);
+	mat[5] = -sin(phi);
+	mat[8] = 0;
 
-	 mat[1] = -sin(theta) * sin(phi);
-	 mat[4] = -sin(theta) * cos(phi);
-	 mat[7] = cos(theta);
- }
+	mat[1] = -sin(theta) * sin(phi);
+	mat[4] = -sin(theta) * cos(phi);
+	mat[7] = cos(theta);
+}
 
-  double matdet2(double* m)
- {
-	 return m[0] * (m[4] * m[8] - m[5] * m[7]) - m[1] * (m[3] * m[8] - m[5] * m[6]) + m[2] * (m[3] * m[7] - m[4] * m[6]);
- }
+double matdet2(double* m)
+{
+	return m[0] * (m[4] * m[8] - m[5] * m[7]) - m[1] * (m[3] * m[8] - m[5] * m[6]) + m[2] * (m[3] * m[7] - m[4] * m[6]);
+}
 
- void matinv2(double* m, double* res)
- {
-	 res[0] = m[4] * m[8] - m[5] * m[7];
-	 res[1] = m[2] * m[7] - m[1] * m[8];
-	 res[2] = m[1] * m[5] - m[2] * m[4];
-	 res[3] = m[5] * m[6] - m[3] * m[8];
-	 res[4] = m[0] * m[8] - m[2] * m[6];
-	 res[6] = m[3] * m[7] - m[4] * m[6];
-	 res[5] = m[2] * m[3] - m[0] * m[5];
-	 res[7] = m[1] * m[6] - m[0] * m[7];
-	 res[8] = m[0] * m[4] - m[1] * m[3];
- }
+void matinv2(double* m, double* res)
+{
+	res[0] = m[4] * m[8] - m[5] * m[7];
+	res[1] = m[2] * m[7] - m[1] * m[8];
+	res[2] = m[1] * m[5] - m[2] * m[4];
+	res[3] = m[5] * m[6] - m[3] * m[8];
+	res[4] = m[0] * m[8] - m[2] * m[6];
+	res[6] = m[3] * m[7] - m[4] * m[6];
+	res[5] = m[2] * m[3] - m[0] * m[5];
+	res[7] = m[1] * m[6] - m[0] * m[7];
+	res[8] = m[0] * m[4] - m[1] * m[3];
+}
 
- void matmult2(double* m1, double* m2, double* res)
- {
-	 res[0] = m1[0] * m2[0] + m1[1] * m2[3] + m1[2] * m2[6];
-	 res[1] = m1[0] * m2[1] + m1[1] * m2[4] + m1[2] * m2[7];
-	 res[2] = m1[0] * m2[2] + m1[1] * m2[5] + m1[2] * m2[8];
-	 res[3] = m1[3] * m2[0] + m1[4] * m2[3] + m1[5] * m2[6];
-	 res[4] = m1[3] * m2[1] + m1[4] * m2[4] + m1[5] * m2[7];
-	 res[5] = m1[3] * m2[2] + m1[4] * m2[5] + m1[5] * m2[8];
-	 res[6] = m1[6] * m2[0] + m1[7] * m2[3] + m1[8] * m2[6];
-	 res[7] = m1[6] * m2[1] + m1[7] * m2[4] + m1[8] * m2[7];
-	 res[8] = m1[6] * m2[2] + m1[7] * m2[5] + m1[8] * m2[8];
- }
+void matmult2(double* m1, double* m2, double* res)
+{
+	res[0] = m1[0] * m2[0] + m1[1] * m2[3] + m1[2] * m2[6];
+	res[1] = m1[0] * m2[1] + m1[1] * m2[4] + m1[2] * m2[7];
+	res[2] = m1[0] * m2[2] + m1[1] * m2[5] + m1[2] * m2[8];
+	res[3] = m1[3] * m2[0] + m1[4] * m2[3] + m1[5] * m2[6];
+	res[4] = m1[3] * m2[1] + m1[4] * m2[4] + m1[5] * m2[7];
+	res[5] = m1[3] * m2[2] + m1[4] * m2[5] + m1[5] * m2[8];
+	res[6] = m1[6] * m2[0] + m1[7] * m2[3] + m1[8] * m2[6];
+	res[7] = m1[6] * m2[1] + m1[7] * m2[4] + m1[8] * m2[7];
+	res[8] = m1[6] * m2[2] + m1[7] * m2[5] + m1[8] * m2[8];
+}
 
- void matact2(double* m, double vecn0, double vecn1, double vecn2, double* nvecn)
- {
-	 nvecn[0] = m[0] * vecn0 + m[1] * vecn1 + m[2] * vecn2;
-	 nvecn[1] = m[3] * vecn0 + m[4] * vecn1 + m[5] * vecn2;
-	 nvecn[2] = m[6] * vecn0 + m[7] * vecn1 + m[8] * vecn2;
- }
+void matact2(double* m, double vecn0, double vecn1, double vecn2, double* nvecn)
+{
+	nvecn[0] = m[0] * vecn0 + m[1] * vecn1 + m[2] * vecn2;
+	nvecn[1] = m[3] * vecn0 + m[4] * vecn1 + m[5] * vecn2;
+	nvecn[2] = m[6] * vecn0 + m[7] * vecn1 + m[8] * vecn2;
+}
 
 void matflipcpu(double* m, double* res)
- {
-	 res[0] = m[6];
-	 res[1] = m[7];
-	 res[2] = m[8];
-	 res[3] = m[3];
-	 res[4] = m[4];
-	 res[5] = m[5];
-	 res[6] = -m[0];
-	 res[7] = -m[1];
-	 res[8] = -m[2];
- }
+{
+	res[0] = m[6];
+	res[1] = m[7];
+	res[2] = m[8];
+	res[3] = m[3];
+	res[4] = m[4];
+	res[5] = m[5];
+	res[6] = -m[0];
+	res[7] = -m[1];
+	res[8] = -m[2];
+}
 
-  void matflip2cpu(double* m, double* res)
- {
-	 res[0] = m[2];
-	 res[1] = m[1];
-	 res[2] = -m[0];
-	 res[3] = m[5];
-	 res[4] = m[4];
-	 res[5] = -m[3];
-	 res[6] = m[8];
-	 res[7] = m[7];
-	 res[8] = -m[6];
- }
+void matflip2cpu(double* m, double* res)
+{
+	res[0] = m[2];
+	res[1] = m[1];
+	res[2] = -m[0];
+	res[3] = m[5];
+	res[4] = m[4];
+	res[5] = -m[3];
+	res[6] = m[8];
+	res[7] = m[7];
+	res[8] = -m[6];
+}
 
 
 void setblocksrandcpu(bool* blocks1, bool* blocks2)
-  {
-	  int i;
-	  int rand = 1;
+{
+	int i;
+	int rand = 1;
 
-	  for (i = 0; i < 30 * 30 * 30; i++)
-	  {
-		  rand = (60493 * rand + 11) % 115249;
-		  if (rand % 100 == 0) blocks1[i] = true;
-		  else blocks1[i] = false;
-		  rand = (60493 * rand + 11) % 115249;
-		  if (rand % 100 == 0) blocks2[i] = true;
-		  else blocks2[i] = false;
-	  }
+	for (i = 0; i < 30 * 30 * 30; i++)
+	{
+		rand = (60493 * rand + 11) % 115249;
+		if (rand % 100 == 0) blocks1[i] = true;
+		else blocks1[i] = false;
+		rand = (60493 * rand + 11) % 115249;
+		if (rand % 100 == 0) blocks2[i] = true;
+		else blocks2[i] = false;
+	}
 
-  }
+}
 
 void setblockscpu(bool* blocks1, bool* blocks2)
 {
