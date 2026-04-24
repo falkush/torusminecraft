@@ -10,6 +10,10 @@ There are no restrictions on the parameters, it may cause crashes, especially if
 # Controls
 ESC: quit
 
+mouse left click: remove block
+
+mouse right click: add block
+
 w: go foward
 
 a: go left
@@ -18,13 +22,13 @@ s: go behind
 
 d: go right
 
-z: increase radius
+z: increase outer radius
 
-x: decrease radius
+x: decrease outer radius
 
-c: increase radius
+c: increase inner radius
 
-v: decrease radius
+v: decrease inner radius
 
 b: increase height of half-plane model
 
@@ -41,6 +45,14 @@ k: increase speed
 l: decrease speed
 
 p: reset
+
+o: screenshot
+
+1,2,3,4: special effects
+
+F1,F2,F3,F4: save states
+
+F5,F6,F7,F8: load states
 
 # Requirements
 - Windows
