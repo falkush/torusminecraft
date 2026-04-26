@@ -13,7 +13,7 @@ static bool* blocks1 = 0;
 static bool* blocks2 = 0;
 cudaError_t cudaStatus;
 
-__device__ double gauss(double x,double sigma)
+__device__ double gauss(double x, double sigma)
 {
 	return exp((-1.0 / 2.0) * x * x * (1.0 / sigma) * (1.0 / sigma));
 }
@@ -240,7 +240,7 @@ __device__ int raymarch1(bool* blocks1, double rayon, double alpha, double dx, d
 
 		return collcolor2(blocks1, currblock, tmpx, tmpy, rem, coordx, coordy, dx, dy, 0, other, currx, curry, currz);
 	}
-	
+
 
 	double t0dx = dx * vl / vecn0;
 	double t0dy = dy * vl / vecn1;
@@ -267,7 +267,7 @@ __device__ int raymarch1(bool* blocks1, double rayon, double alpha, double dx, d
 		contz = kappa - sqrt(rayon * rayon - nextcoordz * nextcoordz);
 
 		count = 0;
-		while (count<100)
+		while (count < 100)
 		{
 			count++;
 			if (contz < contx)
@@ -388,7 +388,7 @@ __device__ int raymarch1(bool* blocks1, double rayon, double alpha, double dx, d
 	else contz = kappa + sqrt(rayon * rayon - nextcoordz * nextcoordz);
 
 	count = 0;
-	while (count<100)
+	while (count < 100)
 	{
 		count++;
 		if (contz < contx)
@@ -543,7 +543,7 @@ __device__ int raymarch2(bool* blocks1, double rayon, double alpha, double dx, d
 	contz = kappa + sqrt(rayon * rayon - nextcoordz * nextcoordz);
 
 	count = 0;
-	while (count<100)
+	while (count < 100)
 	{
 		count++;
 		if (contz < contx)
@@ -694,7 +694,7 @@ __device__ int raymarch3(bool* blocks1, bool* blocks2, double rayon, double alph
 
 		return collcolor2(blocks1, currblock, tmpx, tmpy, rem, coordx, coordy, dx, dy, 0, other, currx, curry, currz);
 	}
-	
+
 	double t0dx = dx * vl / vecn0;
 	double t0dy = dy * vl / vecn1;
 
@@ -713,7 +713,7 @@ __device__ int raymarch3(bool* blocks1, bool* blocks2, double rayon, double alph
 
 
 	count = 0;
-	while (count<100)
+	while (count < 100)
 	{
 		count++;
 		if (contz < contx)
@@ -851,7 +851,7 @@ __device__ int raymarch3(bool* blocks1, bool* blocks2, double rayon, double alph
 	contz = kappa + sqrt(rayon * rayon - nextcoordz * nextcoordz) - sub;
 
 	count = 0;
-	while (count<100)
+	while (count < 100)
 	{
 		count++;
 		if (contz < contx)
@@ -1054,7 +1054,7 @@ __device__ void matflip2(double* m, double* res)
 __device__ double solvequartic(double a0, double b0, double c0, double d0, double e0)
 {
 
-	
+
 	double tmp;
 	double tmin = 65536.0;
 	double sint, s;
@@ -1250,13 +1250,13 @@ __global__ void addKernel(uint8_t* buffer, double pos0, double pos1, double pos2
 	double u, v;
 	uint8_t uv;
 
-	int tmp2,tmpx2,tmpy2;
+	int tmp2, tmpx2, tmpy2;
 	int tmp = blockIdx.x * blockDim.x + threadIdx.x;
 	int tmpx = tmp % 1920;
 	int tmpy = (tmp - tmpx) / 1920;
 
 	int newrpos, newgpos, newbpos;
-	
+
 	double vecl;
 
 	double mat1[9]{};
@@ -1265,18 +1265,18 @@ __global__ void addKernel(uint8_t* buffer, double pos0, double pos1, double pos2
 	uint8_t retg;
 	uint8_t retb;
 
-	double tmp0ef, tmp1ef, tmp2ef,tmp3ef;
+	double tmp0ef, tmp1ef, tmp2ef, tmp3ef;
 
-	double betaef = 0.75*0.7;
+	double betaef = 0.75 * 0.7;
 	double epsilonef = 1.0 / 30.0;
-	
+
 	double gamma0ef, gamma1ef, gamma2ef;
 
 	vecn0 = vec0 + tmpx * addy0 + tmpy * addz0;
-	vecn1 = vec1  + tmpx * addy1 + tmpy * addz1;
+	vecn1 = vec1 + tmpx * addy1 + tmpy * addz1;
 	vecn2 = vec2 + tmpx * addy2 + tmpy * addz2;
 
-	vecn0 += alphaef*30 * sin(0.01 * frame + 0.007 * tmpx) * addy0;
+	vecn0 += alphaef * 30 * sin(0.01 * frame + 0.007 * tmpx) * addy0;
 	vecn1 += alphaef * 30 * sin(0.01 * frame + 0.007 * tmpx) * addy1;
 	vecn2 += alphaef * 30 * sin(0.01 * frame + 0.007 * tmpx) * addy2;
 
@@ -1308,8 +1308,8 @@ __global__ void addKernel(uint8_t* buffer, double pos0, double pos1, double pos2
 		{
 			if (beta < rayon)
 			{
-				if (other) collrgb = raymarch3(blocks2, blocks1, rayon, alpha, dx, dy, dz, currx, curry, currz, vecn0, vecn1, vl, pos0, pos1, nbx, nby, nbz, kappa, tmpx, tmpy, rem, other,add);
-				else collrgb = raymarch3(blocks1, blocks2, rayon, alpha, dx, dy, dz, currx, curry, currz, vecn0, vecn1, vl, pos0, pos1, nbx, nby, nbz, kappa, tmpx, tmpy, rem, other,add);
+				if (other) collrgb = raymarch3(blocks2, blocks1, rayon, alpha, dx, dy, dz, currx, curry, currz, vecn0, vecn1, vl, pos0, pos1, nbx, nby, nbz, kappa, tmpx, tmpy, rem, other, add);
+				else collrgb = raymarch3(blocks1, blocks2, rayon, alpha, dx, dy, dz, currx, curry, currz, vecn0, vecn1, vl, pos0, pos1, nbx, nby, nbz, kappa, tmpx, tmpy, rem, other, add);
 
 				if (collrgb != -1)
 				{
@@ -1329,8 +1329,8 @@ __global__ void addKernel(uint8_t* buffer, double pos0, double pos1, double pos2
 			}
 			else
 			{
-				if (other) collrgb = raymarch1(blocks2, rayon, alpha, dx, dy, dz, currx, curry, currz, vecn0, vecn1, vl, pos0, pos1, nbx, nby, kappa, tmpx, tmpy, rem, true,add);
-				else collrgb = raymarch1(blocks1, rayon, alpha, dx, dy, dz, currx, curry, currz, vecn0, vecn1, vl, pos0, pos1, nbx, nby, kappa, tmpx, tmpy, rem, false,add);
+				if (other) collrgb = raymarch1(blocks2, rayon, alpha, dx, dy, dz, currx, curry, currz, vecn0, vecn1, vl, pos0, pos1, nbx, nby, kappa, tmpx, tmpy, rem, true, add);
+				else collrgb = raymarch1(blocks1, rayon, alpha, dx, dy, dz, currx, curry, currz, vecn0, vecn1, vl, pos0, pos1, nbx, nby, kappa, tmpx, tmpy, rem, false, add);
 
 				if (collrgb != -1)
 				{
@@ -1347,8 +1347,8 @@ __global__ void addKernel(uint8_t* buffer, double pos0, double pos1, double pos2
 		}
 		else
 		{
-			if (other) collrgb = raymarch2(blocks2, rayon, alpha, dx, dy, dz, currx, curry, currz, vecn0, vecn1, vl, pos0, pos1, nbx, nby, kappa, tmpx, tmpy, rem, other,add);
-			else collrgb = raymarch2(blocks1, rayon, alpha, dx, dy, dz, currx, curry, currz, vecn0, vecn1, vl, pos0, pos1, nbx, nby, kappa, tmpx, tmpy, rem, other,add);
+			if (other) collrgb = raymarch2(blocks2, rayon, alpha, dx, dy, dz, currx, curry, currz, vecn0, vecn1, vl, pos0, pos1, nbx, nby, kappa, tmpx, tmpy, rem, other, add);
+			else collrgb = raymarch2(blocks1, rayon, alpha, dx, dy, dz, currx, curry, currz, vecn0, vecn1, vl, pos0, pos1, nbx, nby, kappa, tmpx, tmpy, rem, other, add);
 
 			if (collrgb != -1)
 			{
@@ -1436,8 +1436,8 @@ __global__ void addKernel(uint8_t* buffer, double pos0, double pos1, double pos2
 
 			if (beta < rayon)
 			{
-				if (other) collrgb = raymarch3(blocks2, blocks1, rayon, alpha, dx, dy, dz, currx, curry, 0, nvecn[0], nvecn[1], vl, npos[0], npos[1], nbx, nby, nbz, kappa, tmpx, tmpy, rem, other,add);
-				else collrgb = raymarch3(blocks1, blocks2, rayon, alpha, dx, dy, dz, currx, curry, 0, nvecn[0], nvecn[1], vl, npos[0], npos[1], nbx, nby, nbz, kappa, tmpx, tmpy, rem, other,add);
+				if (other) collrgb = raymarch3(blocks2, blocks1, rayon, alpha, dx, dy, dz, currx, curry, 0, nvecn[0], nvecn[1], vl, npos[0], npos[1], nbx, nby, nbz, kappa, tmpx, tmpy, rem, other, add);
+				else collrgb = raymarch3(blocks1, blocks2, rayon, alpha, dx, dy, dz, currx, curry, 0, nvecn[0], nvecn[1], vl, npos[0], npos[1], nbx, nby, nbz, kappa, tmpx, tmpy, rem, other, add);
 
 				if (collrgb != -1)
 				{
@@ -1466,8 +1466,8 @@ __global__ void addKernel(uint8_t* buffer, double pos0, double pos1, double pos2
 			else
 			{
 
-				if (other) collrgb = raymarch1(blocks2, rayon, alpha, dx, dy, dz, currx, curry, 0, nvecn[0], nvecn[1], vl, npos[0], npos[1], nbx, nby, kappa, tmpx, tmpy, rem, other,add);
-				else collrgb = raymarch1(blocks1, rayon, alpha, dx, dy, dz, currx, curry, 0, nvecn[0], nvecn[1], vl, npos[0], npos[1], nbx, nby, kappa, tmpx, tmpy, rem, other,add);
+				if (other) collrgb = raymarch1(blocks2, rayon, alpha, dx, dy, dz, currx, curry, 0, nvecn[0], nvecn[1], vl, npos[0], npos[1], nbx, nby, kappa, tmpx, tmpy, rem, other, add);
+				else collrgb = raymarch1(blocks1, rayon, alpha, dx, dy, dz, currx, curry, 0, nvecn[0], nvecn[1], vl, npos[0], npos[1], nbx, nby, kappa, tmpx, tmpy, rem, other, add);
 
 				if (collrgb != -1)
 				{
@@ -1662,16 +1662,16 @@ end:
 	tmp1ef *= 255;
 	tmp2ef *= 255;
 
-	
-	tmp0ef *= (1.0-alphaef2);
+
+	tmp0ef *= (1.0 - alphaef2);
 	tmp1ef *= (1.0 - alphaef2);
 	tmp2ef *= (1.0 - alphaef2);
 
 	tmp0ef += alphaef2 * buffer[4 * tmp];
-	tmp1ef += alphaef2 * buffer[4 * tmp+1];
-	tmp2ef += alphaef2 * buffer[4 * tmp+2];
+	tmp1ef += alphaef2 * buffer[4 * tmp + 1];
+	tmp2ef += alphaef2 * buffer[4 * tmp + 2];
 
-	
+
 
 	new0 = (int)round(tmpx + alphaef3 * 30.0 * sin(frame / 30.0));
 	new1 = (int)round(tmpx + alphaef3 * 30.0 * sin(frame / 30.0 + 2.0 * M_PI / 3.0));
@@ -1710,7 +1710,7 @@ end:
 		tmp2ef = 0;
 	}
 
-	newrpos = 4 * (new0+1920*tmpy);
+	newrpos = 4 * (new0 + 1920 * tmpy);
 	newgpos = 4 * (new1 + 1920 * tmpy) + 1;
 	newbpos = 4 * (new2 + 1920 * tmpy) + 2;
 
@@ -1743,16 +1743,16 @@ __global__ void blur(uint8_t* buffer, uint8_t* buffer2)
 	double tw2 = w0 + w1 + w1 + w1 + w1 + w2 + w2 + w2 + w2; //inside
 
 	if (tmpy != 0 && tmpx != 0 && tmpy != 1080 - 1 && tmpx != 1920 - 1) {
-		buffer2[4 * tmp] = (buffer[4 * tmp] * w0 + w1 * (buffer[4 * ((tmpx+1)+1920*tmpy)] + buffer[4 * ((tmpx - 1) + 1920 * tmpy)] + buffer[4 * ((tmpx)+1920*(tmpy+1))] + buffer[4 * ((tmpx) + 1920 * (tmpy-1))]) + w2 * (buffer[4 * ((tmpx+1)+1920 * (tmpy + 1))] + buffer[4 * ((tmpx-1)+1920 * (tmpy + 1))] + buffer[4 * ((tmpx+1)+1920 * (tmpy - 1))] + buffer[4 * ((tmpx-1)+1920 * (tmpy - 1))])) / tw2;
-		buffer2[4 * tmp+1] = (buffer[4 * tmp+1] * w0 + w1 * (buffer[4 * ((tmpx + 1) + 1920 * tmpy)+1] + buffer[4 * ((tmpx - 1) + 1920 * tmpy)+1] + buffer[4 * ((tmpx) + 1920 * (tmpy+1))+1] + buffer[4 * ((tmpx)+1920 * (tmpy - 1))+1]) + w2 * (buffer[4 * ((tmpx + 1) + 1920 * (tmpy + 1))+1] + buffer[4 * ((tmpx - 1) + 1920 * (tmpy + 1))+1] + buffer[4 * ((tmpx + 1) + 1920 * (tmpy - 1))+1] + buffer[4 * ((tmpx - 1) + 1920 * (tmpy - 1))+1])) / tw2;
-		buffer2[4 * tmp+2] = (buffer[4 * tmp+2] * w0 + w1 * (buffer[4 * ((tmpx + 1) + 1920 * tmpy)+2] + buffer[4 * ((tmpx - 1) + 1920 * tmpy)+2] + buffer[4 * ((tmpx) + 1920 * (tmpy+1))+2] + buffer[4 * ((tmpx)+1920 * (tmpy - 1))+2]) + w2 * (buffer[4 * ((tmpx + 1) + 1920 * (tmpy + 1))+2] + buffer[4 * ((tmpx - 1) + 1920 * (tmpy + 1))+2] + buffer[4 * ((tmpx + 1) + 1920 * (tmpy - 1))+2] + buffer[4 * ((tmpx - 1) + 1920 * (tmpy - 1))+2])) / tw2;
+		buffer2[4 * tmp] = (buffer[4 * tmp] * w0 + w1 * (buffer[4 * ((tmpx + 1) + 1920 * tmpy)] + buffer[4 * ((tmpx - 1) + 1920 * tmpy)] + buffer[4 * ((tmpx)+1920 * (tmpy + 1))] + buffer[4 * ((tmpx)+1920 * (tmpy - 1))]) + w2 * (buffer[4 * ((tmpx + 1) + 1920 * (tmpy + 1))] + buffer[4 * ((tmpx - 1) + 1920 * (tmpy + 1))] + buffer[4 * ((tmpx + 1) + 1920 * (tmpy - 1))] + buffer[4 * ((tmpx - 1) + 1920 * (tmpy - 1))])) / tw2;
+		buffer2[4 * tmp + 1] = (buffer[4 * tmp + 1] * w0 + w1 * (buffer[4 * ((tmpx + 1) + 1920 * tmpy) + 1] + buffer[4 * ((tmpx - 1) + 1920 * tmpy) + 1] + buffer[4 * ((tmpx)+1920 * (tmpy + 1)) + 1] + buffer[4 * ((tmpx)+1920 * (tmpy - 1)) + 1]) + w2 * (buffer[4 * ((tmpx + 1) + 1920 * (tmpy + 1)) + 1] + buffer[4 * ((tmpx - 1) + 1920 * (tmpy + 1)) + 1] + buffer[4 * ((tmpx + 1) + 1920 * (tmpy - 1)) + 1] + buffer[4 * ((tmpx - 1) + 1920 * (tmpy - 1)) + 1])) / tw2;
+		buffer2[4 * tmp + 2] = (buffer[4 * tmp + 2] * w0 + w1 * (buffer[4 * ((tmpx + 1) + 1920 * tmpy) + 2] + buffer[4 * ((tmpx - 1) + 1920 * tmpy) + 2] + buffer[4 * ((tmpx)+1920 * (tmpy + 1)) + 2] + buffer[4 * ((tmpx)+1920 * (tmpy - 1)) + 2]) + w2 * (buffer[4 * ((tmpx + 1) + 1920 * (tmpy + 1)) + 2] + buffer[4 * ((tmpx - 1) + 1920 * (tmpy + 1)) + 2] + buffer[4 * ((tmpx + 1) + 1920 * (tmpy - 1)) + 2] + buffer[4 * ((tmpx - 1) + 1920 * (tmpy - 1)) + 2])) / tw2;
 
 	}
 	else
 	{
 		buffer2[4 * tmp] = buffer[4 * tmp];
-		buffer2[4 * tmp + 1] = buffer[4 * tmp+1];
-		buffer2[4 * tmp + 2] = buffer[4 * tmp+2];
+		buffer2[4 * tmp + 1] = buffer[4 * tmp + 1];
+		buffer2[4 * tmp + 2] = buffer[4 * tmp + 2];
 	}
 }
 
@@ -1764,7 +1764,7 @@ void cudaInit()
 	cudaMalloc((void**)&blocks1, 30 * 30 * 30);
 	cudaMalloc((void**)&blocks2, 30 * 30 * 30);
 
-	bufferinit << <(int)(1920 * 1080 / 600), 600 >> > (buffer,buffer2);
+	bufferinit << <(int)(1920 * 1080 / 600), 600 >> > (buffer, buffer2);
 	cudaDeviceSynchronize();
 
 
@@ -1781,10 +1781,10 @@ void cudaExit()
 	cudaFree(blocks2);
 	cudaDeviceReset();
 }
- 
-void cudathingy(uint8_t* pixels, double pos0, double pos1, double pos2, double vec0, double vec1, double vec2, double addy0, double addy1, double addy2, double addz0, double addz1, double addz2, bool inside, double alpha, double beta, double bigr, double r, bool other, double dx, double dy, double dz, int currx, int curry, int currz, int nbx, int nby, int nbz, bool* cpublocks1, bool* cpublocks2, bool rem, bool blockrand, bool reset, int frame, bool add,bool load, double alphaef,double alphaef2, double alphaef3, double alphaef4)
+
+void cudathingy(uint8_t* pixels, double pos0, double pos1, double pos2, double vec0, double vec1, double vec2, double addy0, double addy1, double addy2, double addz0, double addz1, double addz2, bool inside, double alpha, double beta, double bigr, double r, bool other, double dx, double dy, double dz, int currx, int curry, int currz, int nbx, int nby, int nbz, bool* cpublocks1, bool* cpublocks2, bool rem, bool blockrand, bool reset, int frame, bool add, bool load, double alphaef, double alphaef2, double alphaef3, double alphaef4)
 {
-	int nbblurs = alphaef4*20.0;
+	int nbblurs = alphaef4 * 20.0;
 	if (blockrand) setblocksrand << <1, 1 >> > (blocks1, blocks2);
 	if (reset) setblocks << <1, 1 >> > (blocks1, blocks2);
 	if (load)
@@ -1793,14 +1793,14 @@ void cudathingy(uint8_t* pixels, double pos0, double pos1, double pos2, double v
 		cudaMemcpy(blocks2, cpublocks2, 30 * 30 * 30, cudaMemcpyHostToDevice);
 	}
 
-	addKernel << <(int)(1920 * 1080 / 100), 100 >> > (buffer, pos0, pos1, pos2, vec0, vec1, vec2, addy0, addy1, addy2, addz0, addz1, addz2, inside, alpha, beta, bigr, r, other, blocks1, blocks2, dx, dy, dz, currx, curry, currz, nbx, nby, nbz, rem,frame,add,alphaef,alphaef2,alphaef3,alphaef4);
+	addKernel << <(int)(1920 * 1080 / 100), 100 >> > (buffer, pos0, pos1, pos2, vec0, vec1, vec2, addy0, addy1, addy2, addz0, addz1, addz2, inside, alpha, beta, bigr, r, other, blocks1, blocks2, dx, dy, dz, currx, curry, currz, nbx, nby, nbz, rem, frame, add, alphaef, alphaef2, alphaef3, alphaef4);
 	cudaDeviceSynchronize();
 
 	if (nbblurs % 2 == 0)
 	{
 
 
-		for (int i = 0; i < nbblurs/2; i++)
+		for (int i = 0; i < nbblurs / 2; i++)
 		{
 			blur << <(int)(1920 * 1080 / 100), 100 >> > (buffer, buffer2);
 			cudaDeviceSynchronize();
@@ -1815,7 +1815,7 @@ void cudathingy(uint8_t* pixels, double pos0, double pos1, double pos2, double v
 	{
 		blur << <(int)(1920 * 1080 / 100), 100 >> > (buffer, buffer2);
 		cudaDeviceSynchronize();
-		for (int i = 0; i < (nbblurs-1) / 2; i++)
+		for (int i = 0; i < (nbblurs - 1) / 2; i++)
 		{
 			blur << <(int)(1920 * 1080 / 100), 100 >> > (buffer2, buffer);
 			cudaDeviceSynchronize();

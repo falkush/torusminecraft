@@ -8,7 +8,7 @@
 
 using namespace std;
 
-void cudathingy(uint8_t* pixels, double pos0, double pos1, double pos2, double vec0, double vec1, double vec2, double addy0, double addy1, double addy2, double addz0, double addz1, double addz2, bool inside, double alpha, double beta, double bigr, double r, bool other, double dx, double dy, double dz, int currx, int curry, int currz, int nbx, int nby, int nbz, bool* blocks1, bool* blocks2, bool rem, bool blockrand, bool reset, int frame, bool add,bool load, double alphaef, double alphaef2, double alphaef3, double alphaef4);
+void cudathingy(uint8_t* pixels, double pos0, double pos1, double pos2, double vec0, double vec1, double vec2, double addy0, double addy1, double addy2, double addz0, double addz1, double addz2, bool inside, double alpha, double beta, double bigr, double r, bool other, double dx, double dy, double dz, int currx, int curry, int currz, int nbx, int nby, int nbz, bool* blocks1, bool* blocks2, bool rem, bool blockrand, bool reset, int frame, bool add, bool load, double alphaef, double alphaef2, double alphaef3, double alphaef4);
 void cudaInit();
 void cudaExit();
 
@@ -90,9 +90,9 @@ int main()
 	double guder;
 	double distrem;
 
-	double alphaef=0, alphaef2=0, alphaef3=0, alphaef4=0;
-	bool aef=false, aef2=false, aef3=false, aef4=false;
-	int aeff=0, aeff2=0, aeff3=0, aeff4=0;
+	double alphaef = 0, alphaef2 = 0, alphaef3 = 0, alphaef4 = 0;
+	bool aef = false, aef2 = false, aef3 = false, aef4 = false;
+	int aeff = 0, aeff2 = 0, aeff3 = 0, aeff4 = 0;
 
 	double proj0, proj1;
 
@@ -130,15 +130,15 @@ int main()
 
 	setblockscpu(blocks1, blocks2);
 
-	//sf::RenderWindow window(sf::VideoMode(1920, 1080, 32), "Torus Minecraft - Press ESC to stop", sf::Style::Titlebar | sf::Style::Close);
-	sf::RenderWindow window(sf::VideoMode(1920, 1080, 32), "Torus Minecraft - Press ESC to stop", sf::Style::Fullscreen);
-	sf::Texture texture;
-	sf::Sprite sprite;
-	sf::Uint8* pixels = new sf::Uint8[1920 * 1080 * 4];
+	sf::RenderWindow window(sf::VideoMode({ 1920, 1080 }, 32), "Torus Minecraft - Press ESC to stop", sf::Style::Titlebar | sf::Style::Close);
+	//sf::RenderWindow window(sf::VideoMode({ 1920, 1080 }, 32), "Torus Minecraft - Press ESC to stop", sf::State::Fullscreen);
+	sf::Texture texture(sf::Vector2u(1920, 1080));
+	sf::Sprite sprite = sf::Sprite::Sprite(texture);
+	std::uint8_t* pixels = new std::uint8_t[1920 * 1080 * 4];
 	sf::Vector2i winpos;
 
 	cudaInit();
-	texture.create(1920, 1080);
+	//texture.resize({ 1920, 1080 });
 	window.setMouseCursorVisible(false);
 
 	x00 = 0.0; x01 = 0.0; x02 = -1.0;
@@ -152,20 +152,20 @@ int main()
 	while (window.isOpen())
 	{
 		Sleep(1);
-		sf::Event event;
+		//sf::Event event;
 
-		while (window.pollEvent(event))
+		while (const std::optional event = window.pollEvent())
 		{
-			if (focus && event.type == sf::Event::KeyPressed && event.key.code == sf::Keyboard::J)
+			if (focus && event->is<sf::Event::KeyPressed>() && event->getIf<sf::Event::KeyPressed>()->code == sf::Keyboard::Key::J)
 			{
 				setblocksrandcpu(blocks1, blocks2);
 				blockrand = true;
 			}
 
-			if (event.type == sf::Event::Closed)
+			if (event->is<sf::Event::Closed>())
 				window.close();
 
-			if (focus && event.type == sf::Event::MouseMoved)
+			if (focus && event->getIf<sf::Event::MouseMoved>())
 			{
 				POINT p;
 				GetCursorPos(&p);
@@ -257,18 +257,18 @@ int main()
 
 			}
 
-			if (focus && event.type == sf::Event::MouseButtonPressed && event.mouseButton.button == sf::Mouse::Left) rem = true;
-			if (focus && event.type == sf::Event::MouseButtonPressed && event.mouseButton.button == sf::Mouse::Right) add = true;
+			if (focus && event->is<sf::Event::MouseButtonPressed>() && event->getIf<sf::Event::MouseButtonPressed>()->button == sf::Mouse::Button::Left) rem = true;
+			if (focus && event->is<sf::Event::MouseButtonPressed>() && event->getIf<sf::Event::MouseButtonPressed>()->button == sf::Mouse::Button::Right) add = true;
 		}
-		if (sf::Keyboard::isKeyPressed(sf::Keyboard::O)) texture.copyToImage().saveToFile("torus_screenshot.png");
-		
-		if (sf::Keyboard::isKeyPressed(sf::Keyboard::F1))
+		if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::O)) texture.copyToImage().saveToFile("torus_screenshot.png");
+
+		if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::F1))
 		{
 			ofstream svfile("torus_savefile1.txt");
 
 			for (i = 0; i < 30 * 30 * 30; i++)
 			{
-				if(blocks1[i]) svfile << "1";
+				if (blocks1[i]) svfile << "1";
 				else svfile << "0";
 			}
 			for (i = 0; i < 30 * 30 * 30; i++)
@@ -278,7 +278,7 @@ int main()
 			}
 			svfile.close();
 		}
-		if (sf::Keyboard::isKeyPressed(sf::Keyboard::F2))
+		if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::F2))
 		{
 			ofstream svfile("torus_savefile2.txt");
 
@@ -294,7 +294,7 @@ int main()
 			}
 			svfile.close();
 		}
-		if (sf::Keyboard::isKeyPressed(sf::Keyboard::F3))
+		if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::F3))
 		{
 			ofstream svfile("torus_savefile3.txt");
 
@@ -310,7 +310,7 @@ int main()
 			}
 			svfile.close();
 		}
-		if (sf::Keyboard::isKeyPressed(sf::Keyboard::F4))
+		if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::F4))
 		{
 			ofstream svfile("torus_savefile4.txt");
 
@@ -327,28 +327,28 @@ int main()
 			svfile.close();
 		}
 
-		if (sf::Keyboard::isKeyPressed(sf::Keyboard::F5))
+		if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::F5))
 		{
 			load = true;
 
 			ifstream loadfile("torus_savefile1.txt");
 			getline(loadfile, loadline);
-			
+
 			for (i = 0; i < 30 * 30 * 30; i++)
 			{
 				if (loadline.at(i) == '0') blocks1[i] = false;
 				else blocks1[i] = true;
 			}
-			
-			for (i = 30 * 30 * 30; i < 2* 30 * 30 * 30; i++)
+
+			for (i = 30 * 30 * 30; i < 2 * 30 * 30 * 30; i++)
 			{
-				if (loadline.at(i) == '0') blocks2[i- 30 * 30 * 30] = false;
-				else blocks2[i- 30 * 30 * 30] = true;
+				if (loadline.at(i) == '0') blocks2[i - 30 * 30 * 30] = false;
+				else blocks2[i - 30 * 30 * 30] = true;
 			}
-			
+
 			loadfile.close();
 		}
-		if (sf::Keyboard::isKeyPressed(sf::Keyboard::F6))
+		if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::F6))
 		{
 			load = true;
 
@@ -369,7 +369,7 @@ int main()
 
 			loadfile.close();
 		}
-		if (sf::Keyboard::isKeyPressed(sf::Keyboard::F7))
+		if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::F7))
 		{
 			load = true;
 
@@ -390,7 +390,7 @@ int main()
 
 			loadfile.close();
 		}
-		if (sf::Keyboard::isKeyPressed(sf::Keyboard::F8))
+		if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::F8))
 		{
 			load = true;
 
@@ -412,32 +412,32 @@ int main()
 			loadfile.close();
 		}
 
-		if (!aef && sf::Keyboard::isKeyPressed(sf::Keyboard::Num1))
+		if (!aef && sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Num1))
 		{
 			aef = true;
 			alphaef = 0;
 			aeff = frame;
 		}
-		if (!aef2 && sf::Keyboard::isKeyPressed(sf::Keyboard::Num2))
+		if (!aef2 && sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Num2))
 		{
 			aef2 = true;
 			alphaef2 = 0;
 			aeff2 = frame;
 		}
-		if (!aef3 && sf::Keyboard::isKeyPressed(sf::Keyboard::Num3))
+		if (!aef3 && sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Num3))
 		{
 			aef3 = true;
 			alphaef3 = 0;
 			aeff3 = frame;
 		}
-		if (!aef4 && sf::Keyboard::isKeyPressed(sf::Keyboard::Num4))
+		if (!aef4 && sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Num4))
 		{
 			aef4 = true;
 			alphaef4 = 0;
 			aeff4 = frame;
 		}
 
-		if (sf::Keyboard::isKeyPressed(sf::Keyboard::P))
+		if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::P))
 		{
 			x00 = 0.0; x01 = 0.0; x02 = -1.0;
 			x10 = 0.0; x11 = 1.0; x12 = 0.0;
@@ -460,33 +460,33 @@ int main()
 			reset = true;
 		}
 
-		if (sf::Keyboard::isKeyPressed(sf::Keyboard::Z)) { bigr += 0.003; dx = 2.0 * M_PI * bigr / nbx; }
-		if (sf::Keyboard::isKeyPressed(sf::Keyboard::X)) { bigr -= 0.003; dx = 2.0 * M_PI * bigr / nbx; }
-		if (sf::Keyboard::isKeyPressed(sf::Keyboard::C)) { r += 0.003;  alpha = alpha2 * r; beta = beta2 + alpha; dy = 2.0 * M_PI * r / nby; dz = (beta - alpha) / nbz; }
-		if (sf::Keyboard::isKeyPressed(sf::Keyboard::V)) { r -= 0.003;  alpha = alpha2 * r; beta = beta2 + alpha; dy = 2.0 * M_PI * r / nby; dz = (beta - alpha) / nbz; }
-		if (sf::Keyboard::isKeyPressed(sf::Keyboard::B)) { alpha2 += 0.003; alpha = alpha2 * r; beta = beta2 + alpha; dz = (beta - alpha) / nbz; }
-		if (sf::Keyboard::isKeyPressed(sf::Keyboard::N)) { alpha2 -= 0.003;  alpha = alpha2 * r; beta = beta2 + alpha; dz = (beta - alpha) / nbz; }
-		if (sf::Keyboard::isKeyPressed(sf::Keyboard::K)) speed += 0.0001;
-		if (sf::Keyboard::isKeyPressed(sf::Keyboard::L)) if (speed - 0.0001 > 0) speed -= 0.0001;
-		if (sf::Keyboard::isKeyPressed(sf::Keyboard::G)) { beta2 += 0.03; beta += 0.03; dz = (beta - alpha) / nbz; }
-		if (sf::Keyboard::isKeyPressed(sf::Keyboard::H)) { beta2 -= 0.03; beta -= 0.03; dz = (beta - alpha) / nbz; }
+		if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Z)) { bigr += 0.003; dx = 2.0 * M_PI * bigr / nbx; }
+		if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::X)) { bigr -= 0.003; dx = 2.0 * M_PI * bigr / nbx; }
+		if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::C)) { r += 0.003;  alpha = alpha2 * r; beta = beta2 + alpha; dy = 2.0 * M_PI * r / nby; dz = (beta - alpha) / nbz; }
+		if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::V)) { r -= 0.003;  alpha = alpha2 * r; beta = beta2 + alpha; dy = 2.0 * M_PI * r / nby; dz = (beta - alpha) / nbz; }
+		if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::B)) { alpha2 += 0.003; alpha = alpha2 * r; beta = beta2 + alpha; dz = (beta - alpha) / nbz; }
+		if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::N)) { alpha2 -= 0.003;  alpha = alpha2 * r; beta = beta2 + alpha; dz = (beta - alpha) / nbz; }
+		if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::K)) speed += 0.0001;
+		if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::L)) if (speed - 0.0001 > 0) speed -= 0.0001;
+		if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::G)) { beta2 += 0.03; beta += 0.03; dz = (beta - alpha) / nbz; }
+		if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::H)) { beta2 -= 0.03; beta -= 0.03; dz = (beta - alpha) / nbz; }
 
-		/*
-			if (sf::Keyboard::isKeyPressed(sf::Keyboard::Escape))
+		
+			if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Escape))
 			{
 				focus = false;
 				window.setMouseCursorVisible(true);
-			}*/
-		if (sf::Keyboard::isKeyPressed(sf::Keyboard::Escape)) window.close();
+			}
+		//if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Escape)) window.close();
 
 
-		if (sf::Mouse::isButtonPressed(sf::Mouse::Left))
+		if (sf::Mouse::isButtonPressed(sf::Mouse::Button::Left))
 		{
 			focus = true;
 			window.setMouseCursorVisible(false);
 		}
 
-		if (sf::Keyboard::isKeyPressed(sf::Keyboard::W))
+		if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::W))
 		{
 			tmpinside = inside;
 			tmpother = other;
@@ -856,7 +856,7 @@ int main()
 
 		}
 
-		if (sf::Keyboard::isKeyPressed(sf::Keyboard::D))
+		if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::D))
 		{
 			newx00 = x00;
 			newx01 = x01;
@@ -1250,7 +1250,7 @@ int main()
 			x12 = newx02;
 		}
 
-		if (sf::Keyboard::isKeyPressed(sf::Keyboard::A))
+		if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::A))
 		{
 			newx00 = x00;
 			newx01 = x01;
@@ -1653,7 +1653,7 @@ int main()
 			x12 = newx02;
 		}
 
-		if (sf::Keyboard::isKeyPressed(sf::Keyboard::S))
+		if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::S))
 		{
 			x00 = -x00;
 			x01 = -x01;
@@ -2031,7 +2031,7 @@ int main()
 			x02 = -x02;
 		}
 
-		dist = 2.0 + .5*alphaef4*sin(0.01*frame);
+		dist = 2.0 + .5 * alphaef4 * sin(0.01 * frame);
 
 		if (focus)
 		{
@@ -2097,8 +2097,8 @@ int main()
 			{
 				efdur = frame - aeff;
 				if (efdur < 3600 * 1.5) alphaef = min(1.0, efdur / 3600.0);
-				else alphaef = min((-1.5 / 5400.0) * efdur + 3.0,1.0);
-				
+				else alphaef = min((-1.5 / 5400.0) * efdur + 3.0, 1.0);
+
 				if (efdur >= 3600 * 3)
 				{
 					aef = false;
@@ -2142,8 +2142,8 @@ int main()
 				}
 			}
 
-			cudathingy(pixels, pos0, pos1, pos2, vec0, vec1, vec2, addy0, addy1, addy2, addz0, addz1, addz2, inside, alpha, beta, bigr, r, other, dx, dy, dz, currx, curry, currz, nbx, nby, nbz, blocks1, blocks2, rem, blockrand, reset,frame,add,load,alphaef,alphaef2,alphaef3,alphaef4);
-	
+			cudathingy(pixels, pos0, pos1, pos2, vec0, vec1, vec2, addy0, addy1, addy2, addz0, addz1, addz2, inside, alpha, beta, bigr, r, other, dx, dy, dz, currx, curry, currz, nbx, nby, nbz, blocks1, blocks2, rem, blockrand, reset, frame, add, load, alphaef, alphaef2, alphaef3, alphaef4);
+
 
 			pixels[4 * (1920 * (1080 / 2) + (1920 / 2))] = 255;
 			pixels[4 * (1920 * (1080 / 2) + (1920 / 2)) + 1] = 255;
@@ -2165,6 +2165,7 @@ int main()
 			pixels[4 * (1920 * (1080 / 2) + (1920 / 2 - 1)) + 1] = 255;
 			pixels[4 * (1920 * (1080 / 2) + (1920 / 2 - 1)) + 2] = 255;
 
+			window.clear();
 			texture.update(pixels);
 			sprite.setTexture(texture);
 			window.draw(sprite);
